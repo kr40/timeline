@@ -33,25 +33,6 @@ type NewEvent = Omit<Milestone, 'id'>;
 
 const ICON_OPTIONS: IconType[] = ['camera', 'heart', 'baby', 'star', 'smile', 'gift', 'moon', 'music', 'footprints'];
 
-const INITIAL_MILESTONES: Milestone[] = [
-	{
-		id: 1,
-		title: 'We found out!',
-		date: '2025-10-12',
-		description: 'Two little pink lines! We are so excited to start this journey and meet our little one.',
-		image: 'https://images.unsplash.com/photo-1581008035889-b8832a8ba3ab?auto=format&fit=crop&q=80&w=800',
-		icon: 'heart',
-	},
-	{
-		id: 2,
-		title: 'First Ultrasound',
-		date: '2025-11-05',
-		description: 'Heard the tiny heartbeat for the very first time. It sounded like a little galloping horse! 🐎',
-		image: 'https://images.unsplash.com/photo-1557989913-96b63fc3c631?auto=format&fit=crop&q=80&w=800',
-		icon: 'baby',
-	},
-];
-
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
 	year: 'numeric',
 	month: 'long',
