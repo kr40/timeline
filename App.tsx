@@ -13,6 +13,7 @@ import {
 	Smile,
 	Sparkles,
 	Star,
+	Trash2,
 	X,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
@@ -286,6 +287,24 @@ const App = () => {
 		[newEvent, editingId],
 	);
 
+	const handleDeleteMilestone = useCallback(async () => {
+		if (!editingId) return;
+
+		const confirmed = window.confirm("Are you sure you want to delete this memory? It can't be undone.");
+		if (!confirmed) return;
+
+		const { error } = await supabase.from('milestones').delete().eq('id', editingId);
+
+		if (!error) {
+			setMilestones((prev) => prev.filter((m) => m.id !== editingId));
+			setIsModalOpen(false);
+			setEditingId(null);
+		} else {
+			console.error('Error deleting milestone:', error);
+			alert('Failed to delete memory. Please try again.');
+		}
+	}, [editingId]);
+
 	return (
 		<div
 			className='relative min-h-screen overflow-x-hidden selection:bg-pink-200 text-slate-800'
@@ -393,14 +412,28 @@ const App = () => {
 								<Sparkles className='w-6 h-6 text-yellow-400' />
 								{editingId ? 'Edit Memory' : 'New Memory'}
 							</h2>
-							<button
-								onClick={() => {
-									setIsModalOpen(false);
-									setEditingId(null);
-								}}
-								className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-pink-500 hover:bg-pink-100'>
-								<X className='w-6 h-6' />
-							</button>
+							<div className='flex items-center gap-2'>
+								{editingId && (
+									<button
+										onClick={(e) => {
+											e.preventDefault();
+											handleDeleteMilestone();
+										}}
+										className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50'
+										title='Delete Memory'>
+										<Trash2 className='w-6 h-6' />
+									</button>
+								)}
+								<button
+									onClick={() => {
+										setIsModalOpen(false);
+										setEditingId(null);
+									}}
+									className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-pink-500 hover:bg-pink-100'
+									title='Close'>
+									<X className='w-6 h-6' />
+								</button>
+							</div>
 						</div>
 
 						{/* Modal Form */}
