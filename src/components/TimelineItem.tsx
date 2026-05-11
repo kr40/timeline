@@ -1,5 +1,6 @@
-import { Calendar, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Calendar, Pencil } from 'lucide-react';
 import { memo, useState } from 'react';
+import { useSwipe } from '../hooks/useSwipe';
 import { Milestone, getImages } from '../types';
 import { renderIcon } from '../icons';
 import { formatDate } from '../utils';
@@ -19,6 +20,10 @@ export const TimelineCard = memo(
 		const isCarousel = images.length > 1;
 		const [activeIndex, setActiveIndex] = useState(0);
 		const safeIndex = hasImages ? Math.min(activeIndex, images.length - 1) : 0;
+
+		const prev = () => setActiveIndex(i => (i - 1 + images.length) % images.length);
+		const next = () => setActiveIndex(i => (i + 1) % images.length);
+		const swipe = useSwipe(next, prev);
 
 		return (
 			<div className='relative bg-white w-full rounded-3xl p-6 shadow-xl shadow-pink-100 border-4 border-pink-200 transform transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-200 hover:border-pink-300 group'>
@@ -40,28 +45,16 @@ export const TimelineCard = memo(
 						className='mb-6 p-3 pb-6 md:p-4 md:pb-8 bg-white rounded-xl shadow-md border border-slate-200 transform transition-all duration-300 group-hover:scale-[1.03] group-hover:-rotate-2 group-hover:shadow-xl group-hover:border-pink-200 cursor-pointer'
 						onClick={() => onImageClick(images, safeIndex)}>
 
-						<div className='relative w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100'>
+						<div
+							className='relative w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100 touch-pan-y'
+							{...(isCarousel ? swipe : {})}>
 							<img
+								key={safeIndex}
 								src={images[safeIndex]}
 								alt={`${milestone.title} – photo ${safeIndex + 1}`}
 								loading='lazy'
 								className='object-cover object-center w-full h-full select-none carousel-img-enter'
-								key={safeIndex}
 							/>
-							{isCarousel && (
-								<>
-									<button
-										onClick={e => { e.stopPropagation(); setActiveIndex(i => (i - 1 + images.length) % images.length); }}
-										className='absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-white/80 rounded-full shadow-md text-slate-700 hover:bg-white hover:text-pink-500 transition-colors'>
-										<ChevronLeft className='w-5 h-5' />
-									</button>
-									<button
-										onClick={e => { e.stopPropagation(); setActiveIndex(i => (i + 1) % images.length); }}
-										className='absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-white/80 rounded-full shadow-md text-slate-700 hover:bg-white hover:text-pink-500 transition-colors'>
-										<ChevronRight className='w-5 h-5' />
-									</button>
-								</>
-							)}
 						</div>
 
 						{isCarousel && (

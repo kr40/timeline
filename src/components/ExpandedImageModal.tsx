@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useSwipe } from '../hooks/useSwipe';
 
 type Props = {
 	images:       string[];
@@ -10,6 +11,10 @@ type Props = {
 export const ExpandedImageModal = ({ images, initialIndex, onClose }: Props) => {
 	const [index, setIndex] = useState(initialIndex);
 	const isMulti = images.length > 1;
+	const swipe = useSwipe(
+		() => setIndex(i => (i + 1) % images.length),
+		() => setIndex(i => (i - 1 + images.length) % images.length),
+	);
 
 	useEffect(() => { setIndex(initialIndex); }, [initialIndex]);
 
@@ -31,8 +36,9 @@ export const ExpandedImageModal = ({ images, initialIndex, onClose }: Props) => 
 			onClick={onClose}>
 
 			<div
-				className='relative max-w-full max-h-[90vh] flex items-center justify-center'
-				onClick={e => e.stopPropagation()}>
+				className='relative max-w-full max-h-[90vh] flex items-center justify-center touch-pan-y'
+				onClick={e => e.stopPropagation()}
+				{...(isMulti ? swipe : {})}>
 
 				<img
 					key={index}
