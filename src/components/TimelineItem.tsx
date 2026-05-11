@@ -1,6 +1,6 @@
-import { Calendar, Pencil } from 'lucide-react';
-import { memo } from 'react';
-import { Milestone } from '../types';
+import { Calendar, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { memo, useState } from 'react';
+import { Milestone, getImages } from '../types';
 import { renderIcon } from '../icons';
 import { formatDate } from '../utils';
 
@@ -10,33 +10,83 @@ export const TimelineCard = memo(
 		onImageClick,
 		onEditClick,
 	}: {
-		milestone: Milestone;
-		onImageClick: (image: string) => void;
-		onEditClick: (milestone: Milestone) => void;
-	}) => (
-		<div className='relative bg-white w-full rounded-3xl p-6 shadow-xl shadow-pink-100 border-4 border-pink-200 transform transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-200 hover:border-pink-300 group'>
-			<button
-				onClick={() => onEditClick(milestone)}
-				className='absolute p-2 text-pink-400 transition-colors rounded-full shadow-sm opacity-0 top-4 right-4 bg-pink-50 hover:bg-pink-100 hover:text-pink-600 group-hover:opacity-100'>
-				<Pencil className='w-5 h-5' />
-			</button>
-			<div className='inline-flex items-center px-5 py-2 mb-5 space-x-2 text-lg font-extrabold text-purple-800 transition-colors bg-purple-100 rounded-full shadow-sm group-hover:bg-purple-200'>
-				<Calendar className='w-5 h-5' />
-				<span>{formatDate(milestone.date)}</span>
-			</div>
-			<h3 className='pr-10 mb-4 text-3xl font-extrabold text-slate-800'>{milestone.title}</h3>
-			{milestone.image && (
-				<div
-					className='mb-6 p-3 pb-6 md:p-4 md:pb-8 bg-white rounded-xl shadow-md border border-slate-200 transform transition-all duration-300 group-hover:scale-[1.03] group-hover:-rotate-2 group-hover:shadow-xl group-hover:border-pink-200 cursor-pointer'
-					onClick={() => onImageClick(milestone.image!)}>
-					<div className='w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100'>
-						<img src={milestone.image} alt={milestone.title} loading='lazy' className='object-cover object-center w-full h-full' />
-					</div>
+		milestone:    Milestone;
+		onImageClick: (images: string[], index: number) => void;
+		onEditClick:  (milestone: Milestone) => void;
+	}) => {
+		const images = getImages(milestone);
+		const hasImages = images.length > 0;
+		const isCarousel = images.length > 1;
+		const [activeIndex, setActiveIndex] = useState(0);
+		const safeIndex = hasImages ? Math.min(activeIndex, images.length - 1) : 0;
+
+		return (
+			<div className='relative bg-white w-full rounded-3xl p-6 shadow-xl shadow-pink-100 border-4 border-pink-200 transform transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-200 hover:border-pink-300 group'>
+				<button
+					onClick={() => onEditClick(milestone)}
+					className='absolute p-2 text-pink-400 transition-colors rounded-full shadow-sm opacity-0 top-4 right-4 bg-pink-50 hover:bg-pink-100 hover:text-pink-600 group-hover:opacity-100'>
+					<Pencil className='w-5 h-5' />
+				</button>
+
+				<div className='inline-flex items-center px-5 py-2 mb-5 space-x-2 text-lg font-extrabold text-purple-800 transition-colors bg-purple-100 rounded-full shadow-sm group-hover:bg-purple-200'>
+					<Calendar className='w-5 h-5' />
+					<span>{formatDate(milestone.date)}</span>
 				</div>
-			)}
-			<p className='text-xl leading-relaxed text-slate-600'>{milestone.description}</p>
-		</div>
-	),
+
+				<h3 className='pr-10 mb-4 text-3xl font-extrabold text-slate-800'>{milestone.title}</h3>
+
+				{hasImages && (
+					<div
+						className='mb-6 p-3 pb-6 md:p-4 md:pb-8 bg-white rounded-xl shadow-md border border-slate-200 transform transition-all duration-300 group-hover:scale-[1.03] group-hover:-rotate-2 group-hover:shadow-xl group-hover:border-pink-200 cursor-pointer'
+						onClick={() => onImageClick(images, safeIndex)}>
+
+						<div className='relative w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100'>
+							<img
+								src={images[safeIndex]}
+								alt={`${milestone.title} – photo ${safeIndex + 1}`}
+								loading='lazy'
+								className='object-cover object-center w-full h-full select-none carousel-img-enter'
+								key={safeIndex}
+							/>
+							{isCarousel && (
+								<>
+									<button
+										onClick={e => { e.stopPropagation(); setActiveIndex(i => (i - 1 + images.length) % images.length); }}
+										className='absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-white/80 rounded-full shadow-md text-slate-700 hover:bg-white hover:text-pink-500 transition-colors'>
+										<ChevronLeft className='w-5 h-5' />
+									</button>
+									<button
+										onClick={e => { e.stopPropagation(); setActiveIndex(i => (i + 1) % images.length); }}
+										className='absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-white/80 rounded-full shadow-md text-slate-700 hover:bg-white hover:text-pink-500 transition-colors'>
+										<ChevronRight className='w-5 h-5' />
+									</button>
+								</>
+							)}
+						</div>
+
+						{isCarousel && (
+							<div
+								className='flex justify-center gap-1.5 mt-3'
+								onClick={e => e.stopPropagation()}>
+								{images.map((_, i) => (
+									<button
+										key={i}
+										onClick={() => setActiveIndex(i)}
+										className={`rounded-full transition-all duration-200 ${
+											i === safeIndex ? 'w-4 h-2 bg-pink-400' : 'w-2 h-2 bg-slate-300 hover:bg-pink-300'
+										}`}
+										aria-label={`Go to photo ${i + 1}`}
+									/>
+								))}
+							</div>
+						)}
+					</div>
+				)}
+
+				<p className='text-xl leading-relaxed text-slate-600'>{milestone.description}</p>
+			</div>
+		);
+	},
 );
 
 export const TimelineItem = memo(
@@ -46,10 +96,10 @@ export const TimelineItem = memo(
 		onImageClick,
 		onEditClick,
 	}: {
-		milestone: Milestone;
-		index: number;
-		onImageClick: (image: string) => void;
-		onEditClick: (milestone: Milestone) => void;
+		milestone:    Milestone;
+		index:        number;
+		onImageClick: (images: string[], index: number) => void;
+		onEditClick:  (milestone: Milestone) => void;
 	}) => (
 		<div
 			className={`relative mb-12 animate-fade-in-up md:flex md:items-center md:justify-between ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}

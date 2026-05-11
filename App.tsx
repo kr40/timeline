@@ -47,7 +47,7 @@ const App = () => {
 	const [error, setError] = useState<string | null>(null);
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [expandedImage, setExpandedImage] = useState<string | null>(null);
+	const [expandedGallery, setExpandedGallery] = useState<{ images: string[]; index: number } | null>(null);
 	const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
 
 	useEffect(() => {
@@ -72,13 +72,18 @@ const App = () => {
 	}, []);
 
 	const handleSaveMilestone = useCallback(
-		async (eventData: NewEvent, file: File | null) => {
-			let finalImage = eventData.image;
-			if (file) {
-				finalImage = await uploadToImageKit(file);
-			}
+		async (eventData: NewEvent, files: File[]) => {
+			const uploadedUrls = files.length > 0
+				? await Promise.all(files.map(f => uploadToImageKit(f)))
+				: [];
 
-			const eventToSave = { ...eventData, image: finalImage };
+			const finalImages = [...eventData.images, ...uploadedUrls];
+
+			const eventToSave: NewEvent = {
+				...eventData,
+				images: finalImages,
+				image: finalImages[0] ?? null,  // keep legacy column in sync
+			};
 
 			if (editingMilestone) {
 				const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editingMilestone.id);
@@ -115,7 +120,7 @@ const App = () => {
 	}, []);
 
 	const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
-	const handleCloseExpandedImage = useCallback(() => setExpandedImage(null), []);
+	const handleCloseExpandedGallery = useCallback(() => setExpandedGallery(null), []);
 
 	return (
 		<div
@@ -154,7 +159,7 @@ const App = () => {
 								key={milestone.id}
 								milestone={milestone}
 								index={index}
-								onImageClick={setExpandedImage}
+								onImageClick={(images, idx) => setExpandedGallery({ images, index: idx })}
 								onEditClick={(m) => {
 									setEditingMilestone(m);
 									setIsModalOpen(true);
@@ -186,7 +191,13 @@ const App = () => {
 				/>
 			)}
 
-			{expandedImage && <ExpandedImageModal image={expandedImage} onClose={handleCloseExpandedImage} />}
+			{expandedGallery && (
+				<ExpandedImageModal
+					images={expandedGallery.images}
+					initialIndex={expandedGallery.index}
+					onClose={handleCloseExpandedGallery}
+				/>
+			)}
 		</div>
 	);
 };

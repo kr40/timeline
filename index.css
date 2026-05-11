@@ -42,6 +42,15 @@
 	opacity: 0;
 }
 
+@keyframes carouselFade {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+
+.carousel-img-enter {
+	animation: carouselFade 0.2s ease-out;
+}
+
 body {
 	margin: 0;
 	min-width: 320px;

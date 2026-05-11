@@ -1,15 +1,17 @@
 import { Image as ImageIcon, Sparkles, Trash2, X } from 'lucide-react';
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { Milestone, NewEvent } from '../types';
-import { renderIcon } from '../icons';
+import { Milestone, NewEvent, getImages } from '../types';
 import { ICON_OPTIONS } from '../utils';
+import { renderIcon } from '../icons';
 
 type Props = {
 	editingMilestone: Milestone | null;
-	onClose: () => void;
-	onSave: (event: NewEvent, file: File | null) => Promise<void>;
+	onClose:  () => void;
+	onSave:   (event: NewEvent, files: File[]) => Promise<void>;
 	onDelete: (id: number) => Promise<void>;
 };
+
+const MAX_IMAGES = 10;
 
 export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Props) => {
 	const [localEvent, setLocalEvent] = useState<NewEvent>({
@@ -17,28 +19,41 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 		date: '',
 		description: '',
 		image: null,
+		images: [],
 		icon: 'camera',
 	});
-	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+	// URLs already saved in DB (from editingMilestone)
+	const [existingImages, setExistingImages] = useState<string[]>([]);
+	// Files selected in this session, not yet uploaded
+	const [newFiles, setNewFiles] = useState<Array<{ file: File; previewUrl: string }>>([]);
+
 	const [isSaving, setIsSaving] = useState(false);
 	const [deleteConfirming, setDeleteConfirming] = useState(false);
 	const [operationError, setOperationError] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+	const totalCount = existingImages.length + newFiles.length;
+	const canAddMore  = totalCount < MAX_IMAGES;
+
+	// Initialise / reset when the target milestone changes
 	useEffect(() => {
 		setDeleteConfirming(false);
 		setOperationError(null);
-		if (editingMilestone) {
-			setLocalEvent({
-				title: editingMilestone.title,
-				date: editingMilestone.date,
-				description: editingMilestone.description,
-				image: editingMilestone.image,
-				icon: editingMilestone.icon,
-			});
-			setPreviewUrl(editingMilestone.image);
-		}
+		setExistingImages(editingMilestone ? getImages(editingMilestone) : []);
+		setNewFiles([]);
+		setLocalEvent(
+			editingMilestone
+				? {
+					title:       editingMilestone.title,
+					date:        editingMilestone.date,
+					description: editingMilestone.description,
+					image:       editingMilestone.image,
+					images:      [],  // handleSubmit re-merges existingImages + uploadedUrls
+					icon:        editingMilestone.icon,
+				}
+				: { title: '', date: '', description: '', image: null, images: [], icon: 'camera' },
+		);
 	}, [editingMilestone]);
 
 	useEffect(() => {
@@ -49,30 +64,41 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	}, [onClose]);
 
+	// Revoke all blob URLs when the session ends (milestone changes or unmount).
+	// Intentionally depends on editingMilestone NOT newFiles to avoid
+	// revoking URLs that are still displayed in the current session.
 	useEffect(() => {
-		// Cleanup object URL to prevent memory leaks
 		return () => {
-			if (previewUrl && previewUrl.startsWith('blob:')) {
-				URL.revokeObjectURL(previewUrl);
-			}
+			newFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
 		};
-	}, [previewUrl]);
+	}, [editingMilestone]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-
-		const url = URL.createObjectURL(file);
-		setPreviewUrl(url);
-		setSelectedFile(file);
+		const files = Array.from(e.target.files ?? []);
+		if (!files.length) return;
+		const toAdd = files.slice(0, MAX_IMAGES - totalCount);
+		setNewFiles(prev => [
+			...prev,
+			...toAdd.map(file => ({ file, previewUrl: URL.createObjectURL(file) })),
+		]);
+		e.target.value = '';  // reset so same file can be re-selected
 	};
+
+	const handleRemoveExisting = (i: number) =>
+		setExistingImages(prev => prev.filter((_, idx) => idx !== i));
+
+	const handleRemoveNewFile = (i: number) =>
+		setNewFiles(prev => {
+			URL.revokeObjectURL(prev[i].previewUrl);
+			return prev.filter((_, idx) => idx !== i);
+		});
 
 	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
 		setIsSaving(true);
 		setOperationError(null);
 		try {
-			await onSave(localEvent, selectedFile);
+			await onSave({ ...localEvent, images: existingImages }, newFiles.map(f => f.file));
 		} catch (err: any) {
 			setOperationError(err.message || 'Failed to save memory. Please try again.');
 		} finally {
@@ -87,6 +113,8 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 			<div
 				className='bg-white w-full max-w-lg max-h-[90vh] flex flex-col rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-pink-100 transform transition-all my-8'
 				onClick={(e) => e.stopPropagation()}>
+
+				{/* Header */}
 				<div className='flex items-center justify-between px-8 py-6 border-b-2 border-pink-100 bg-pink-50 shrink-0'>
 					<h2 className='flex items-center gap-2 text-2xl font-bold text-slate-800'>
 						<Sparkles className='w-6 h-6 text-yellow-400' />
@@ -138,6 +166,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 					</div>
 				</div>
 
+				{/* Form */}
 				<form onSubmit={handleSubmit} className='p-8 space-y-6 overflow-y-auto'>
 					<div>
 						<label className='block pl-4 mb-2 text-sm font-bold text-slate-700'>
@@ -172,7 +201,8 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 							placeholder='It felt like little butterflies...'
 							value={localEvent.description}
 							onChange={(e) => setLocalEvent((prev) => ({ ...prev, description: e.target.value }))}
-							className='w-full h-32 px-6 py-4 text-lg transition-colors border-2 resize-none bg-slate-50 border-slate-100 rounded-3xl focus:outline-none focus:border-pink-300 focus:bg-white'></textarea>
+							className='w-full h-32 px-6 py-4 text-lg transition-colors border-2 resize-none bg-slate-50 border-slate-100 rounded-3xl focus:outline-none focus:border-pink-300 focus:bg-white'
+						/>
 					</div>
 
 					<div>
@@ -194,41 +224,92 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 						</div>
 					</div>
 
+					{/* Multi-photo section */}
 					<div>
-						<label className='block pl-4 mb-2 text-sm font-bold text-slate-700'>Add a Photo</label>
-						<input type='file' accept='image/*' ref={fileInputRef} onChange={handleImageChange} className='hidden' />
+						<label className='block pl-4 mb-2 text-sm font-bold text-slate-700'>
+							Photos
+							{totalCount > 0 && (
+								<span className='ml-1 text-xs font-normal text-slate-400'>
+									({totalCount}/{MAX_IMAGES})
+								</span>
+							)}
+						</label>
 
-						{!previewUrl ? (
+						<input
+							type='file'
+							accept='image/*'
+							multiple
+							ref={fileInputRef}
+							onChange={handleImageChange}
+							className='hidden'
+						/>
+
+						{/* Thumbnail grid */}
+						{totalCount > 0 && (
+							<div className='grid grid-cols-3 gap-3 mb-3'>
+								{existingImages.map((url, i) => (
+									<div
+										key={`existing-${i}`}
+										className='relative aspect-square rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-50'>
+										<img
+											src={url}
+											alt={`Photo ${i + 1}`}
+											className='object-cover w-full h-full'
+										/>
+										<button
+											type='button'
+											disabled={isSaving}
+											onClick={() => handleRemoveExisting(i)}
+											className='absolute top-1 right-1 p-0.5 bg-white/80 rounded-full text-slate-600 hover:text-red-500 hover:bg-white transition-colors shadow-sm disabled:opacity-50'>
+											<X className='w-4 h-4' />
+										</button>
+									</div>
+								))}
+
+								{newFiles.map(({ previewUrl }, i) => (
+									<div
+										key={`new-${i}`}
+										className='relative aspect-square rounded-xl overflow-hidden border-2 border-pink-200 bg-slate-50'>
+										<img
+											src={previewUrl}
+											alt={`New photo ${i + 1}`}
+											className='object-cover w-full h-full'
+										/>
+										{isSaving ? (
+											<div className='absolute inset-0 bg-black/30 flex items-center justify-center'>
+												<div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin' />
+											</div>
+										) : (
+											<button
+												type='button'
+												onClick={() => handleRemoveNewFile(i)}
+												className='absolute top-1 right-1 p-0.5 bg-white/80 rounded-full text-slate-600 hover:text-red-500 hover:bg-white transition-colors shadow-sm'>
+												<X className='w-4 h-4' />
+											</button>
+										)}
+									</div>
+								))}
+							</div>
+						)}
+
+						{/* Add photos button */}
+						{canAddMore && (
 							<button
 								type='button'
 								disabled={isSaving}
 								onClick={() => fileInputRef.current?.click()}
-								className={`flex flex-col items-center justify-center w-full p-8 transition-all border-4 border-dashed rounded-3xl group ${
+								className={`flex items-center justify-center gap-2 w-full p-6 transition-all border-4 border-dashed rounded-3xl group ${
 									isSaving
 										? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
 										: 'border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-pink-200 hover:text-pink-400'
 								}`}>
-								<div className='p-4 mb-3 transition-transform bg-white rounded-full shadow-sm group-hover:scale-110'>
-									<ImageIcon className='w-8 h-8' />
+								<div className='p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform'>
+									<ImageIcon className='w-6 h-6' />
 								</div>
-								<span className='font-medium'>Click to choose a cute photo</span>
+								<span className='font-medium'>
+									{totalCount === 0 ? 'Click to choose photos' : 'Add more photos'}
+								</span>
 							</button>
-						) : (
-							<div className='relative max-w-xs p-3 pb-8 mx-auto transform bg-white border shadow-md rounded-xl border-slate-200 group rotate-1'>
-								<div
-									className={`w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100 ${isSaving ? 'opacity-50' : ''}`}>
-									<img src={previewUrl} alt='Preview' className='object-cover object-center w-full h-full' />
-								</div>
-								<div className='absolute inset-0 z-10 flex items-center justify-center transition-opacity opacity-0 bg-black/40 group-hover:opacity-100 rounded-xl'>
-									<button
-										type='button'
-										disabled={isSaving}
-										onClick={() => fileInputRef.current?.click()}
-										className='px-6 py-2 font-bold transition-transform transform bg-white rounded-full shadow-lg text-slate-800 hover:bg-pink-50 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'>
-										Change Photo
-									</button>
-								</div>
-							</div>
 						)}
 					</div>
 
