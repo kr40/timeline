@@ -7,6 +7,40 @@ import { TimelineItem } from './src/components/TimelineItem';
 import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
 
+const uploadToImageKit = async (file: File): Promise<string> => {
+	const formData = new FormData();
+	formData.append('file', file);
+	formData.append('fileName', file.name || 'uploaded_image.jpg');
+
+	const authRes = await fetch('/.netlify/functions/auth');
+	if (!authRes.ok) {
+		const errorData = await authRes.json();
+		throw new Error(errorData.error || 'Failed to fetch upload signature');
+	}
+	const authData = await authRes.json();
+
+	const publicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
+	if (!publicKey) throw new Error('Missing ImageKit public key in environment configuration.');
+
+	formData.append('publicKey', publicKey);
+	formData.append('signature', authData.signature);
+	formData.append('expire', authData.expire.toString());
+	formData.append('token', authData.token);
+
+	const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+		method: 'POST',
+		body: formData,
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json();
+		throw new Error(errorData.message || 'Image upload failed');
+	}
+
+	const data = await response.json();
+	return data.url;
+};
+
 const App = () => {
 	const [milestones, setMilestones] = useState<Milestone[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -37,93 +71,51 @@ const App = () => {
 		fetchMilestones();
 	}, []);
 
-	const uploadToImageKit = async (file: File): Promise<string> => {
-		const formData = new FormData();
-		formData.append('file', file);
-		formData.append('fileName', file.name || 'uploaded_image.jpg');
-
-		const authRes = await fetch('/.netlify/functions/auth');
-		if (!authRes.ok) {
-			const errorData = await authRes.json();
-			throw new Error(errorData.error || 'Failed to fetch upload signature');
-		}
-		const authData = await authRes.json();
-
-		// Ensure strictly utilizing the ENV variable for security, rather than a hardcoded default public key
-		const publicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
-		if (!publicKey) throw new Error('Missing ImageKit public key in environment configuration.');
-
-		formData.append('publicKey', publicKey);
-		formData.append('signature', authData.signature);
-		formData.append('expire', authData.expire.toString());
-		formData.append('token', authData.token);
-
-		const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
-			method: 'POST',
-			body: formData,
-		});
-
-		if (!response.ok) {
-			const errorData = await response.json();
-			throw new Error(errorData.message || 'Image upload failed');
-		}
-
-		const data = await response.json();
-		return data.url;
-	};
-
 	const handleSaveMilestone = useCallback(
 		async (eventData: NewEvent, file: File | null) => {
-			try {
-				let finalImage = eventData.image;
-				// Deferred upload mechanism - only upload when saving
-				if (file) {
-					finalImage = await uploadToImageKit(file);
-				}
-
-				const eventToSave = { ...eventData, image: finalImage };
-
-				if (editingMilestone) {
-					const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editingMilestone.id);
-					if (error) throw error;
-					setMilestones((prev) =>
-						prev
-							.map((m) => (m.id === editingMilestone.id ? { ...eventToSave, id: editingMilestone.id } : m))
-							.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-					);
-				} else {
-					const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
-					if (error) throw error;
-					if (data) {
-						setMilestones((prev) =>
-							[...prev, data[0]].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-						);
-					}
-				}
-				setIsModalOpen(false);
-				setEditingMilestone(null);
-			} catch (err: any) {
-				console.error('Save error:', err);
-				alert('Failed to save memory: ' + (err.message || 'Unknown error'));
+			let finalImage = eventData.image;
+			if (file) {
+				finalImage = await uploadToImageKit(file);
 			}
+
+			const eventToSave = { ...eventData, image: finalImage };
+
+			if (editingMilestone) {
+				const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editingMilestone.id);
+				if (error) throw error;
+				setMilestones((prev) =>
+					prev
+						.map((m) => (m.id === editingMilestone.id ? { ...eventToSave, id: editingMilestone.id } : m))
+						.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+				);
+			} else {
+				const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
+				if (error) throw error;
+				if (data) {
+					setMilestones((prev) =>
+						[...prev, data[0]].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+					);
+				}
+			}
+			setIsModalOpen(false);
+			setEditingMilestone(null);
 		},
 		[editingMilestone],
 	);
 
 	const handleDeleteMilestone = useCallback(async (id: number) => {
-		const confirmed = window.confirm("Are you sure you want to delete this memory? It can't be undone.");
-		if (!confirmed) return;
-
 		const { error } = await supabase.from('milestones').delete().eq('id', id);
-		if (!error) {
-			setMilestones((prev) => prev.filter((m) => m.id !== id));
-			setIsModalOpen(false);
-			setEditingMilestone(null);
-		} else {
+		if (error) {
 			console.error('Error deleting milestone:', error);
-			alert('Failed to delete memory. Please try again.');
+			throw error;
 		}
+		setMilestones((prev) => prev.filter((m) => m.id !== id));
+		setIsModalOpen(false);
+		setEditingMilestone(null);
 	}, []);
+
+	const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+	const handleCloseExpandedImage = useCallback(() => setExpandedImage(null), []);
 
 	return (
 		<div
@@ -188,13 +180,13 @@ const App = () => {
 			{isModalOpen && (
 				<MemoryModal
 					editingMilestone={editingMilestone}
-					onClose={() => setIsModalOpen(false)}
+					onClose={handleCloseModal}
 					onSave={handleSaveMilestone}
 					onDelete={handleDeleteMilestone}
 				/>
 			)}
 
-			{expandedImage && <ExpandedImageModal image={expandedImage} onClose={() => setExpandedImage(null)} />}
+			{expandedImage && <ExpandedImageModal image={expandedImage} onClose={handleCloseExpandedImage} />}
 		</div>
 	);
 };

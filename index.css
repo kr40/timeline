@@ -29,10 +29,12 @@
 
 .animate-float {
 	animation: float 4s ease-in-out infinite;
+	will-change: transform;
 }
 
 .animate-float-delayed {
 	animation: float 5s ease-in-out infinite 2s;
+	will-change: transform;
 }
 
 .animate-fade-in-up {

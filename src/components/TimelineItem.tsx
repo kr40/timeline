@@ -1,7 +1,8 @@
 import { Calendar, Pencil } from 'lucide-react';
 import { memo } from 'react';
 import { Milestone } from '../types';
-import { formatDate, renderIcon } from '../utils';
+import { renderIcon } from '../icons';
+import { formatDate } from '../utils';
 
 export const TimelineCard = memo(
 	({
@@ -29,7 +30,7 @@ export const TimelineCard = memo(
 					className='mb-6 p-3 pb-6 md:p-4 md:pb-8 bg-white rounded-xl shadow-md border border-slate-200 transform transition-all duration-300 group-hover:scale-[1.03] group-hover:-rotate-2 group-hover:shadow-xl group-hover:border-pink-200 cursor-pointer'
 					onClick={() => onImageClick(milestone.image!)}>
 					<div className='w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100'>
-						<img src={milestone.image} alt={milestone.title} className='object-cover object-center w-full h-full' />
+						<img src={milestone.image} alt={milestone.title} loading='lazy' className='object-cover object-center w-full h-full' />
 					</div>
 				</div>
 			)}
@@ -52,7 +53,7 @@ export const TimelineItem = memo(
 	}) => (
 		<div
 			className={`relative mb-12 animate-fade-in-up md:flex md:items-center md:justify-between ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
-			style={{ animationDelay: `${index * 0.15}s` }}>
+			style={{ animationDelay: `${Math.min(index * 0.15, 1.5)}s` }}>
 			<div className='absolute z-10 flex items-center justify-center transition-all duration-300 transform -translate-x-1/2 bg-white border-4 border-pink-100 rounded-full shadow-md left-1/2 w-14 h-14 hover:scale-110 hover:rotate-6'>
 				{renderIcon(milestone.icon)}
 			</div>

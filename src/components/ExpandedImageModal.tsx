@@ -23,7 +23,7 @@ export const ExpandedImageModal = ({ image, onClose }: { image: string; onClose:
 				/>
 				<button
 					onClick={onClose}
-					className='absolute z-10 hidden p-2 transition-colors bg-white rounded-full shadow-xl -top-4 -right-4 text-slate-800 hover:bg-pink-50 hover:text-pink-500 md:block'>
+					className='absolute z-10 block p-2 transition-colors bg-white rounded-full shadow-xl -top-4 -right-4 text-slate-800 hover:bg-pink-50 hover:text-pink-500'>
 					<X className='w-6 h-6' />
 				</button>
 			</div>

@@ -1,7 +1,8 @@
 import { Image as ImageIcon, Sparkles, Trash2, X } from 'lucide-react';
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Milestone, NewEvent } from '../types';
-import { ICON_OPTIONS, renderIcon } from '../utils';
+import { renderIcon } from '../icons';
+import { ICON_OPTIONS } from '../utils';
 
 type Props = {
 	editingMilestone: Milestone | null;
@@ -21,9 +22,13 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
+	const [deleteConfirming, setDeleteConfirming] = useState(false);
+	const [operationError, setOperationError] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
+		setDeleteConfirming(false);
+		setOperationError(null);
 		if (editingMilestone) {
 			setLocalEvent({
 				title: editingMilestone.title,
@@ -65,8 +70,11 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
 		setIsSaving(true);
+		setOperationError(null);
 		try {
 			await onSave(localEvent, selectedFile);
+		} catch (err: any) {
+			setOperationError(err.message || 'Failed to save memory. Please try again.');
 		} finally {
 			setIsSaving(false);
 		}
@@ -86,13 +94,39 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 					</h2>
 					<div className='flex items-center gap-2'>
 						{editingMilestone && (
-							<button
-								type='button'
-								onClick={() => onDelete(editingMilestone.id)}
-								className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50'
-								title='Delete Memory'>
-								<Trash2 className='w-6 h-6' />
-							</button>
+							deleteConfirming ? (
+								<div className='flex items-center gap-2'>
+									<span className='text-sm font-semibold text-red-500'>Delete?</span>
+									<button
+										type='button'
+										onClick={async () => {
+											setOperationError(null);
+											try {
+												await onDelete(editingMilestone.id);
+											} catch (err: any) {
+												setDeleteConfirming(false);
+												setOperationError(err.message || 'Failed to delete memory. Please try again.');
+											}
+										}}
+										className='px-3 py-1 text-sm font-bold text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors'>
+										Yes, delete
+									</button>
+									<button
+										type='button'
+										onClick={() => setDeleteConfirming(false)}
+										className='px-3 py-1 text-sm font-bold text-slate-600 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors'>
+										Cancel
+									</button>
+								</div>
+							) : (
+								<button
+									type='button'
+									onClick={() => setDeleteConfirming(true)}
+									className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50'
+									title='Delete Memory'>
+									<Trash2 className='w-6 h-6' />
+								</button>
+							)
 						)}
 						<button
 							type='button'
@@ -206,6 +240,12 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 							{isSaving ? 'Saving...' : 'Save this Memory 💖'}
 						</button>
 					</div>
+
+					{operationError && (
+						<div className='px-4 py-3 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-2xl'>
+							{operationError}
+						</div>
+					)}
 				</form>
 			</div>
 		</div>
