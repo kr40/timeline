@@ -4,6 +4,7 @@ import { uploadToImageKit } from '../imagekit';
 import { Milestone, NewEvent, getImages } from '../types';
 import { ICON_OPTIONS } from '../utils';
 import { renderIcon } from '../icons';
+import { MAX_IMAGES } from '../constants';
 
 type Props = {
 	editingMilestone: Milestone | null;
@@ -11,8 +12,6 @@ type Props = {
 	onSave:   (event: NewEvent) => Promise<void>;
 	onDelete: (id: number) => Promise<void>;
 };
-
-const MAX_IMAGES = 10;
 
 export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Props) => {
 	const [localEvent, setLocalEvent] = useState<NewEvent>({
@@ -30,6 +29,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 	const [newFiles, setNewFiles] = useState<Array<{ file: File; previewUrl: string }>>([]);
 
 	const [isSaving, setIsSaving] = useState(false);
+	const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 	const [deleteConfirming, setDeleteConfirming] = useState(false);
 	const [operationError, setOperationError] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -99,11 +99,27 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 		setIsSaving(true);
 		setOperationError(null);
 		try {
-			// Upload any new files first. On success, promote them into existingImages
-			// and clear newFiles so that a DB-save retry never re-uploads the same files.
+			// Upload new files sequentially, collecting failures by 1-based index.
+			// On success, promote uploaded URLs into existingImages so a DB-save retry
+			// never re-uploads the same files.
 			let allImages = existingImages;
 			if (newFiles.length > 0) {
-				const uploadedUrls = await Promise.all(newFiles.map(f => uploadToImageKit(f.file)));
+				const uploadedUrls: string[] = [];
+				const failures: number[] = [];
+				for (let i = 0; i < newFiles.length; i++) {
+					setUploadingIndex(i);
+					try {
+						uploadedUrls.push(await uploadToImageKit(newFiles[i].file));
+					} catch {
+						failures.push(i + 1);
+					}
+				}
+				setUploadingIndex(null);
+				if (failures.length > 0) {
+					throw new Error(
+						`Photo${failures.length > 1 ? 's' : ''} ${failures.join(', ')} failed to upload. Remove them and try again.`,
+					);
+				}
 				newFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
 				allImages = [...existingImages, ...uploadedUrls];
 				setExistingImages(allImages);
@@ -120,14 +136,18 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 	return (
 		<div
 			className='fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-sm'
+			aria-label='Close dialog'
 			onClick={onClose}>
 			<div
+				role='dialog'
+				aria-modal='true'
+				aria-labelledby='memory-modal-title'
 				className='bg-white w-full max-w-lg max-h-[90vh] flex flex-col rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-pink-100 transform transition-all my-8'
 				onClick={(e) => e.stopPropagation()}>
 
 				{/* Header */}
 				<div className='flex items-center justify-between px-8 py-6 border-b-2 border-pink-100 bg-pink-50 shrink-0'>
-					<h2 className='flex items-center gap-2 text-2xl font-bold text-slate-800'>
+					<h2 id='memory-modal-title' className='flex items-center gap-2 text-2xl font-bold text-slate-800'>
 						<Sparkles className='w-6 h-6 text-yellow-400' />
 						{editingMilestone ? 'Edit Memory' : 'New Memory'}
 					</h2>
@@ -286,18 +306,18 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 											alt={`New photo ${i + 1}`}
 											className='object-cover w-full h-full'
 										/>
-										{isSaving ? (
+										{isSaving && uploadingIndex === i ? (
 											<div className='absolute inset-0 bg-black/30 flex items-center justify-center'>
 												<div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin' />
 											</div>
-										) : (
+										) : !isSaving ? (
 											<button
 												type='button'
 												onClick={() => handleRemoveNewFile(i)}
 												className='absolute top-1 right-1 p-0.5 bg-white/80 rounded-full text-slate-600 hover:text-red-500 hover:bg-white transition-colors shadow-sm'>
 												<X className='w-4 h-4' />
 											</button>
-										)}
+										) : null}
 									</div>
 								))}
 							</div>

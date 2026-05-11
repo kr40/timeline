@@ -1,72 +1,104 @@
 import { Baby, Plus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { FloatingBackground } from './src/components/FloatingBackground';
 import { MemoryModal } from './src/components/MemoryModal';
 import { TimelineItem } from './src/components/TimelineItem';
 import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
+import { PAGE_SIZE } from './src/constants';
 
 const App = () => {
 	const [milestones, setMilestones] = useState<Milestone[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [page, setPage] = useState(0);
+	const [hasMore, setHasMore] = useState(true);
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [expandedGallery, setExpandedGallery] = useState<{ images: string[]; index: number } | null>(null);
-	const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
+	const [expandedGallery, setExpandedGallery] = useState<{ images: string[]; index: number; title: string } | null>(null);
 
-	useEffect(() => {
-		const fetchMilestones = async () => {
-			try {
-				setIsLoading(true);
-				setError(null);
-				const { data, error: supaError } = await supabase
-					.from('milestones')
-					.select('*')
-					.order('date', { ascending: true })
-					.order('id', { ascending: true });
-				if (supaError) throw supaError;
-				if (data) setMilestones(data);
-			} catch (err: any) {
-				console.error('Error fetching milestones:', err);
-				setError(err.message || 'Failed to connect to the database.');
-			} finally {
-				setIsLoading(false);
+	const [editingMilestoneState, setEditingMilestoneState] = useState<Milestone | null>(null);
+	const editingMilestoneRef = useRef<Milestone | null>(null);
+	const setEditingMilestone = (m: Milestone | null) => {
+		editingMilestoneRef.current = m;
+		setEditingMilestoneState(m);
+	};
+
+	const fetchMilestones = useCallback(async (pageNum: number, replace: boolean) => {
+		try {
+			if (replace) setIsLoading(true);
+			setError(null);
+			const from = pageNum * PAGE_SIZE;
+			const { data, error: supaError } = await supabase
+				.from('milestones')
+				.select('*')
+				.order('date', { ascending: true })
+				.order('id', { ascending: true })
+				.range(from, from + PAGE_SIZE - 1);
+			if (supaError) throw supaError;
+			if (data) {
+				setMilestones(prev => replace ? data : [...prev, ...data]);
+				setHasMore(data.length === PAGE_SIZE);
 			}
-		};
-		fetchMilestones();
+		} catch (err: any) {
+			console.error('Error fetching milestones:', err);
+			setError(err.message || 'Failed to connect to the database.');
+		} finally {
+			setIsLoading(false);
+		}
 	}, []);
+
+	useEffect(() => { fetchMilestones(0, true); }, [fetchMilestones]);
+
+	const handleLoadMore = useCallback(() => {
+		const next = page + 1;
+		setPage(next);
+		fetchMilestones(next, false);
+	}, [page, fetchMilestones]);
 
 	const handleSaveMilestone = useCallback(
 		async (eventData: NewEvent) => {
-			// Images are already uploaded by MemoryModal before onSave is called.
+			const editing = editingMilestoneRef.current;
 			const eventToSave: NewEvent = {
 				...eventData,
-				image: eventData.images[0] ?? null,  // keep legacy column in sync
+				image: eventData.images[0] ?? null,
 			};
 
-			if (editingMilestone) {
-				const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editingMilestone.id);
+			if (editing) {
+				const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editing.id);
 				if (error) throw error;
-				setMilestones((prev) =>
-					prev
-						.map((m) => (m.id === editingMilestone.id ? { ...eventToSave, id: editingMilestone.id } : m))
-						.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id),
-				);
+				// If the entire dataset is loaded, update locally to avoid a round-trip.
+				if (!hasMore) {
+					setMilestones(prev =>
+						prev
+							.map(m => (m.id === editing.id ? { ...eventToSave, id: editing.id } : m))
+							.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id),
+					);
+				} else {
+					setPage(0);
+					fetchMilestones(0, true);
+				}
 			} else {
 				const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
 				if (error) throw error;
 				if (data) {
-					setMilestones((prev) =>
-						[...prev, data[0]].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id),
-					);
+					if (!hasMore) {
+						setMilestones(prev =>
+							[...prev, data[0]].sort(
+								(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id,
+							),
+						);
+					} else {
+						setPage(0);
+						fetchMilestones(0, true);
+					}
 				}
 			}
 			setIsModalOpen(false);
 			setEditingMilestone(null);
 		},
-		[editingMilestone],
+		[hasMore, fetchMilestones],
 	);
 
 	const handleDeleteMilestone = useCallback(async (id: number) => {
@@ -75,7 +107,7 @@ const App = () => {
 			console.error('Error deleting milestone:', error);
 			throw error;
 		}
-		setMilestones((prev) => prev.filter((m) => m.id !== id));
+		setMilestones(prev => prev.filter(m => m.id !== id));
 		setIsModalOpen(false);
 		setEditingMilestone(null);
 	}, []);
@@ -84,9 +116,7 @@ const App = () => {
 	const handleCloseExpandedGallery = useCallback(() => setExpandedGallery(null), []);
 
 	return (
-		<div
-			className='relative min-h-screen overflow-x-hidden selection:bg-pink-200 text-slate-800'
-			style={{ fontFamily: "'Nunito', sans-serif", backgroundColor: '#fcf8f7' }}>
+		<div className='relative min-h-screen overflow-x-hidden selection:bg-pink-200 text-slate-800 font-nunito bg-cream'>
 			<FloatingBackground />
 
 			<header className='bg-white/80 backdrop-blur-md rounded-b-[3rem] shadow-sm p-8 mb-12 relative z-10 border-b border-pink-50'>
@@ -120,13 +150,22 @@ const App = () => {
 								key={milestone.id}
 								milestone={milestone}
 								index={index}
-								onImageClick={(images, idx) => setExpandedGallery({ images, index: idx })}
-								onEditClick={(m) => {
+								onImageClick={(images, idx) => setExpandedGallery({ images, index: idx, title: milestone.title })}
+								onEditClick={m => {
 									setEditingMilestone(m);
 									setIsModalOpen(true);
 								}}
 							/>
 						))}
+						{hasMore && !isLoading && (
+							<div className='flex justify-center mt-8'>
+								<button
+									onClick={handleLoadMore}
+									className='px-8 py-3 font-bold text-pink-600 bg-pink-50 border-2 border-pink-200 rounded-full hover:bg-pink-100 transition-colors'>
+									Load more memories
+								</button>
+							</div>
+						)}
 					</div>
 				)}
 			</main>
@@ -145,7 +184,7 @@ const App = () => {
 
 			{isModalOpen && (
 				<MemoryModal
-					editingMilestone={editingMilestone}
+					editingMilestone={editingMilestoneState}
 					onClose={handleCloseModal}
 					onSave={handleSaveMilestone}
 					onDelete={handleDeleteMilestone}
@@ -156,6 +195,7 @@ const App = () => {
 				<ExpandedImageModal
 					images={expandedGallery.images}
 					initialIndex={expandedGallery.index}
+					title={expandedGallery.title}
 					onClose={handleCloseExpandedGallery}
 				/>
 			)}

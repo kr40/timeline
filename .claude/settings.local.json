@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm show *)"
+      "Bash(npm show *)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)"
     ]
   }
 }

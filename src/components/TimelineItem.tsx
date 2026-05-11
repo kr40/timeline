@@ -1,9 +1,10 @@
 import { Calendar, Pencil } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useSwipe } from '../hooks/useSwipe';
 import { Milestone, getImages } from '../types';
 import { renderIcon } from '../icons';
 import { formatDate } from '../utils';
+import { FADE_IN_STEP_S, FADE_IN_MAX_S } from '../constants';
 
 export const TimelineCard = memo(
 	({
@@ -20,6 +21,9 @@ export const TimelineCard = memo(
 		const isCarousel = images.length > 1;
 		const [activeIndex, setActiveIndex] = useState(0);
 		const safeIndex = hasImages ? Math.min(activeIndex, images.length - 1) : 0;
+		const [imgLoaded, setImgLoaded] = useState(false);
+
+		useEffect(() => { setImgLoaded(false); }, [safeIndex]);
 
 		const prev = () => setActiveIndex(i => (i - 1 + images.length) % images.length);
 		const next = () => setActiveIndex(i => (i + 1) % images.length);
@@ -46,14 +50,18 @@ export const TimelineCard = memo(
 						onClick={() => onImageClick(images, safeIndex)}>
 
 						<div
-							className='relative w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-50 border border-slate-100 touch-pan-y'
+							className='relative w-full aspect-[3/4] overflow-hidden rounded-lg bg-slate-100 border border-slate-100 touch-pan-y'
 							{...(isCarousel ? swipe : {})}>
+							{!imgLoaded && (
+								<div className='absolute inset-0 animate-pulse bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100' />
+							)}
 							<img
 								key={safeIndex}
 								src={images[safeIndex]}
 								alt={`${milestone.title} – photo ${safeIndex + 1}`}
 								loading='lazy'
-								className='object-cover object-center w-full h-full select-none carousel-img-enter'
+								onLoad={() => setImgLoaded(true)}
+								className={`object-cover object-center w-full h-full select-none carousel-img-enter transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
 							/>
 						</div>
 
@@ -96,7 +104,7 @@ export const TimelineItem = memo(
 	}) => (
 		<div
 			className={`relative mb-12 animate-fade-in-up md:flex md:items-center md:justify-between ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
-			style={{ animationDelay: `${Math.min(index * 0.15, 1.5)}s` }}>
+			style={{ animationDelay: `${Math.min(index * FADE_IN_STEP_S, FADE_IN_MAX_S)}s` }}>
 			<div className='absolute z-10 flex items-center justify-center transition-all duration-300 transform -translate-x-1/2 bg-white border-4 border-pink-100 rounded-full shadow-md left-1/2 w-14 h-14 hover:scale-110 hover:rotate-6'>
 				{renderIcon(milestone.icon)}
 			</div>
