@@ -6,9 +6,10 @@ type Props = {
 	images:       string[];
 	initialIndex: number;
 	onClose:      () => void;
+	title?:       string;
 };
 
-export const ExpandedImageModal = ({ images, initialIndex, onClose }: Props) => {
+export const ExpandedImageModal = ({ images, initialIndex, onClose, title }: Props) => {
 	const [index, setIndex] = useState(initialIndex);
 	const isMulti = images.length > 1;
 	const swipe = useSwipe(
@@ -32,6 +33,9 @@ export const ExpandedImageModal = ({ images, initialIndex, onClose }: Props) => 
 
 	return (
 		<div
+			role='dialog'
+			aria-modal='true'
+			aria-label='Image viewer'
 			className='fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] cursor-pointer'
 			onClick={onClose}>
 
@@ -43,7 +47,7 @@ export const ExpandedImageModal = ({ images, initialIndex, onClose }: Props) => 
 				<img
 					key={index}
 					src={images[index]}
-					alt={`Photo ${index + 1} of ${images.length}`}
+					alt={`${title ?? 'Memory'} — photo ${index + 1} of ${images.length}`}
 					className='max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl cursor-auto select-none carousel-img-enter'
 				/>
 
