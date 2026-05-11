@@ -7,40 +7,6 @@ import { TimelineItem } from './src/components/TimelineItem';
 import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
 
-const uploadToImageKit = async (file: File): Promise<string> => {
-	const formData = new FormData();
-	formData.append('file', file);
-	formData.append('fileName', file.name || 'uploaded_image.jpg');
-
-	const authRes = await fetch('/.netlify/functions/auth');
-	if (!authRes.ok) {
-		const errorData = await authRes.json();
-		throw new Error(errorData.error || 'Failed to fetch upload signature');
-	}
-	const authData = await authRes.json();
-
-	const publicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
-	if (!publicKey) throw new Error('Missing ImageKit public key in environment configuration.');
-
-	formData.append('publicKey', publicKey);
-	formData.append('signature', authData.signature);
-	formData.append('expire', authData.expire.toString());
-	formData.append('token', authData.token);
-
-	const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
-		method: 'POST',
-		body: formData,
-	});
-
-	if (!response.ok) {
-		const errorData = await response.json();
-		throw new Error(errorData.message || 'Image upload failed');
-	}
-
-	const data = await response.json();
-	return data.url;
-};
-
 const App = () => {
 	const [milestones, setMilestones] = useState<Milestone[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +24,8 @@ const App = () => {
 				const { data, error: supaError } = await supabase
 					.from('milestones')
 					.select('*')
-					.order('date', { ascending: true });
+					.order('date', { ascending: true })
+					.order('id', { ascending: true });
 				if (supaError) throw supaError;
 				if (data) setMilestones(data);
 			} catch (err: any) {
@@ -72,17 +39,11 @@ const App = () => {
 	}, []);
 
 	const handleSaveMilestone = useCallback(
-		async (eventData: NewEvent, files: File[]) => {
-			const uploadedUrls = files.length > 0
-				? await Promise.all(files.map(f => uploadToImageKit(f)))
-				: [];
-
-			const finalImages = [...eventData.images, ...uploadedUrls];
-
+		async (eventData: NewEvent) => {
+			// Images are already uploaded by MemoryModal before onSave is called.
 			const eventToSave: NewEvent = {
 				...eventData,
-				images: finalImages,
-				image: finalImages[0] ?? null,  // keep legacy column in sync
+				image: eventData.images[0] ?? null,  // keep legacy column in sync
 			};
 
 			if (editingMilestone) {
@@ -91,14 +52,14 @@ const App = () => {
 				setMilestones((prev) =>
 					prev
 						.map((m) => (m.id === editingMilestone.id ? { ...eventToSave, id: editingMilestone.id } : m))
-						.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+						.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id),
 				);
 			} else {
 				const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
 				if (error) throw error;
 				if (data) {
 					setMilestones((prev) =>
-						[...prev, data[0]].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+						[...prev, data[0]].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id - b.id),
 					);
 				}
 			}

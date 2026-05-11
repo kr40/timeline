@@ -1,5 +1,6 @@
 import { Image as ImageIcon, Sparkles, Trash2, X } from 'lucide-react';
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
+import { uploadToImageKit } from '../imagekit';
 import { Milestone, NewEvent, getImages } from '../types';
 import { ICON_OPTIONS } from '../utils';
 import { renderIcon } from '../icons';
@@ -7,7 +8,7 @@ import { renderIcon } from '../icons';
 type Props = {
 	editingMilestone: Milestone | null;
 	onClose:  () => void;
-	onSave:   (event: NewEvent, files: File[]) => Promise<void>;
+	onSave:   (event: NewEvent) => Promise<void>;
 	onDelete: (id: number) => Promise<void>;
 };
 
@@ -98,7 +99,17 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 		setIsSaving(true);
 		setOperationError(null);
 		try {
-			await onSave({ ...localEvent, images: existingImages }, newFiles.map(f => f.file));
+			// Upload any new files first. On success, promote them into existingImages
+			// and clear newFiles so that a DB-save retry never re-uploads the same files.
+			let allImages = existingImages;
+			if (newFiles.length > 0) {
+				const uploadedUrls = await Promise.all(newFiles.map(f => uploadToImageKit(f.file)));
+				newFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
+				allImages = [...existingImages, ...uploadedUrls];
+				setExistingImages(allImages);
+				setNewFiles([]);
+			}
+			await onSave({ ...localEvent, images: allImages });
 		} catch (err: any) {
 			setOperationError(err.message || 'Failed to save memory. Please try again.');
 		} finally {
