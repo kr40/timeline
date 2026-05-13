@@ -108,8 +108,11 @@ export const AuthGate = ({ onAuth, isModal = false, onClose }: AuthGateProps) =>
 				role='dialog'
 				aria-modal='true'
 				aria-labelledby='authgate-modal-title'
+				onClick={onClose}
 				className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
-				<div className='w-full max-w-sm mx-4 bg-cream rounded-3xl p-8 shadow-2xl shadow-pink-100 border-2 border-pink-100'>
+				<div
+					onClick={e => e.stopPropagation()}
+					className='w-full max-w-sm mx-4 bg-cream rounded-3xl p-8 shadow-2xl shadow-pink-100 border-2 border-pink-100'>
 					<h2 id='authgate-modal-title' className='text-2xl font-extrabold text-slate-800 text-center mb-6'>🔑 Unlock editing</h2>
 					<PasswordForm onAuth={onAuth} showViewOnly={false} onClose={onClose} />
 				</div>
