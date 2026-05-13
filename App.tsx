@@ -201,6 +201,7 @@ const App = () => {
 									setEditingMilestone(m);
 									setIsModalOpen(true);
 								}}
+								isUnlocked={isUnlocked}
 							/>
 						))}
 						{hasMore && !isLoading && (
