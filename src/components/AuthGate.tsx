@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Baby } from 'lucide-react';
 import { FloatingBackground } from './FloatingBackground';
 
+const AUTH_STORAGE_KEY = 'timeline_auth';
+
 type AuthOutcome = 'unlocked' | 'view-only';
 
 interface AuthGateProps {
@@ -34,8 +36,8 @@ const PasswordForm = ({
 		if (!expected) {
 			console.warn('[AuthGate] VITE_APP_PASSWORD is not set.');
 		}
-		if (password.trim() === expected) {
-			try { localStorage.setItem('timeline_auth', 'unlocked'); } catch { /* ignore */ }
+		if (password.trim() === (expected ?? '').trim()) {
+			try { localStorage.setItem(AUTH_STORAGE_KEY, 'unlocked'); } catch { /* ignore */ }
 			onAuth('unlocked');
 		} else {
 			setShake(true);
@@ -45,7 +47,7 @@ const PasswordForm = ({
 	};
 
 	const handleViewOnly = () => {
-		try { localStorage.setItem('timeline_auth', 'view-only'); } catch { /* ignore */ }
+		try { localStorage.setItem(AUTH_STORAGE_KEY, 'view-only'); } catch { /* ignore */ }
 		onAuth('view-only');
 	};
 

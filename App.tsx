@@ -9,6 +9,8 @@ import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
 import { PAGE_SIZE } from './src/constants';
 
+const AUTH_STORAGE_KEY = 'timeline_auth';
+
 type AuthState = 'unlocked' | 'view-only' | null;
 
 const App = () => {
@@ -30,7 +32,7 @@ const App = () => {
 
 	const [authState, setAuthState] = useState<AuthState>(() => {
 		try {
-			const stored = localStorage.getItem('timeline_auth');
+			const stored = localStorage.getItem(AUTH_STORAGE_KEY);
 			if (stored === 'unlocked' || stored === 'view-only') return stored;
 		} catch { /* localStorage unavailable */ }
 		return null;
@@ -45,7 +47,7 @@ const App = () => {
 	};
 
 	const handleLock = () => {
-		try { localStorage.removeItem('timeline_auth'); } catch { /* ignore */ }
+		try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch { /* ignore */ }
 		setAuthState(null);
 	};
 
