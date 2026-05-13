@@ -9,6 +9,8 @@ import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
 import { PAGE_SIZE } from './src/constants';
 
+type AuthState = 'unlocked' | 'view-only' | null;
+
 const App = () => {
 	const [milestones, setMilestones] = useState<Milestone[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -25,8 +27,6 @@ const App = () => {
 		editingMilestoneRef.current = m;
 		setEditingMilestoneState(m);
 	};
-
-	type AuthState = 'unlocked' | 'view-only' | null;
 
 	const [authState, setAuthState] = useState<AuthState>(() => {
 		try {
@@ -73,7 +73,10 @@ const App = () => {
 		}
 	}, []);
 
-	useEffect(() => { fetchMilestones(0, true); }, [fetchMilestones]);
+	useEffect(() => {
+		if (authState === null) return;
+		fetchMilestones(0, true);
+	}, [fetchMilestones, authState]);
 
 	const handleLoadMore = useCallback(() => {
 		const next = page + 1;
