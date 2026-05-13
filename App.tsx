@@ -1,5 +1,6 @@
 import { Baby, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AuthGate } from './src/components/AuthGate';
 import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { FloatingBackground } from './src/components/FloatingBackground';
 import { MemoryModal } from './src/components/MemoryModal';
@@ -7,6 +8,10 @@ import { TimelineItem } from './src/components/TimelineItem';
 import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
 import { PAGE_SIZE } from './src/constants';
+
+const AUTH_STORAGE_KEY = 'timeline_auth';
+
+type AuthState = 'unlocked' | 'view-only' | null;
 
 const App = () => {
 	const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -23,6 +28,27 @@ const App = () => {
 	const setEditingMilestone = (m: Milestone | null) => {
 		editingMilestoneRef.current = m;
 		setEditingMilestoneState(m);
+	};
+
+	const [authState, setAuthState] = useState<AuthState>(() => {
+		try {
+			const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+			if (stored === 'unlocked' || stored === 'view-only') return stored;
+		} catch { /* localStorage unavailable */ }
+		return null;
+	});
+
+	const [showUnlockModal, setShowUnlockModal] = useState(false);
+
+	const isUnlocked = authState === 'unlocked';
+
+	const handleAuth = (state: 'unlocked' | 'view-only') => {
+		setAuthState(state);
+	};
+
+	const handleLock = () => {
+		try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch { /* ignore */ }
+		setAuthState(null);
 	};
 
 	const fetchMilestones = useCallback(async (pageNum: number, replace: boolean) => {
@@ -49,7 +75,10 @@ const App = () => {
 		}
 	}, []);
 
-	useEffect(() => { fetchMilestones(0, true); }, [fetchMilestones]);
+	useEffect(() => {
+		if (authState === null) return;
+		fetchMilestones(0, true);
+	}, [fetchMilestones, authState]);
 
 	const handleLoadMore = useCallback(() => {
 		const next = page + 1;
@@ -115,6 +144,10 @@ const App = () => {
 	const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
 	const handleCloseExpandedGallery = useCallback(() => setExpandedGallery(null), []);
 
+	if (authState === null) {
+		return <AuthGate onAuth={handleAuth} />;
+	}
+
 	return (
 		<div className='relative min-h-screen overflow-x-hidden selection:bg-pink-200 text-slate-800 font-nunito bg-cream'>
 			<FloatingBackground />
@@ -126,6 +159,21 @@ const App = () => {
 					</div>
 					<h1 className='mb-2 text-4xl font-extrabold tracking-tight md:text-5xl text-slate-800'>Our Baby Journey</h1>
 					<p className='text-lg font-medium text-slate-500'>From a tiny seed to our little miracle 🌱</p>
+				</div>
+				<div className='absolute top-4 right-4 md:top-6 md:right-8 z-20'>
+					{isUnlocked ? (
+						<button
+							onClick={handleLock}
+							className='flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-pink-500 bg-pink-50 border-2 border-pink-200 rounded-full hover:bg-pink-100 transition-colors'>
+							🔒 Lock
+						</button>
+					) : (
+						<button
+							onClick={() => setShowUnlockModal(true)}
+							className='flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-pink-500 bg-pink-50 border-2 border-pink-200 rounded-full hover:bg-pink-100 transition-colors'>
+							🔑 Unlock
+						</button>
+					)}
 				</div>
 			</header>
 
@@ -155,6 +203,7 @@ const App = () => {
 									setEditingMilestone(m);
 									setIsModalOpen(true);
 								}}
+								isUnlocked={isUnlocked}
 							/>
 						))}
 						{hasMore && !isLoading && (
@@ -170,17 +219,19 @@ const App = () => {
 				)}
 			</main>
 
-			<button
-				onClick={() => {
-					setEditingMilestone(null);
-					setIsModalOpen(true);
-				}}
-				className='fixed z-40 flex items-center justify-center p-4 text-yellow-900 transition-transform transform bg-yellow-400 rounded-full shadow-lg bottom-8 right-8 hover:bg-yellow-300 shadow-yellow-200 hover:scale-110 group'>
-				<Plus className='w-8 h-8' strokeWidth={3} />
-				<span className='overflow-hidden text-lg font-bold transition-all duration-300 ease-in-out max-w-0 whitespace-nowrap group-hover:max-w-xs group-hover:ml-2 group-hover:mr-2'>
-					Add Memory
-				</span>
-			</button>
+			{isUnlocked && (
+				<button
+					onClick={() => {
+						setEditingMilestone(null);
+						setIsModalOpen(true);
+					}}
+					className='fixed z-40 flex items-center justify-center p-4 text-yellow-900 transition-transform transform bg-yellow-400 rounded-full shadow-lg bottom-8 right-8 hover:bg-yellow-300 shadow-yellow-200 hover:scale-110 group'>
+					<Plus className='w-8 h-8' strokeWidth={3} />
+					<span className='overflow-hidden text-lg font-bold transition-all duration-300 ease-in-out max-w-0 whitespace-nowrap group-hover:max-w-xs group-hover:ml-2 group-hover:mr-2'>
+						Add Memory
+					</span>
+				</button>
+			)}
 
 			{isModalOpen && (
 				<MemoryModal
@@ -197,6 +248,17 @@ const App = () => {
 					initialIndex={expandedGallery.index}
 					title={expandedGallery.title}
 					onClose={handleCloseExpandedGallery}
+				/>
+			)}
+
+			{showUnlockModal && (
+				<AuthGate
+					isModal={true}
+					onAuth={state => {
+						handleAuth(state);
+						setShowUnlockModal(false);
+					}}
+					onClose={() => setShowUnlockModal(false)}
 				/>
 			)}
 		</div>
