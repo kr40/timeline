@@ -32,9 +32,12 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 
 	useEffect(() => {
 		(async () => {
-			const { data } = await supabase.from('birth_capsule').select('*').limit(1).maybeSingle();
-			setCapsule(data ?? null);
-			setIsLoading(false);
+			try {
+				const { data } = await supabase.from('birth_capsule').select('*').limit(1).maybeSingle();
+				setCapsule(data ?? null);
+			} finally {
+				setIsLoading(false);
+			}
 		})();
 	}, []);
 
@@ -68,7 +71,7 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 								<p className='text-white/70 text-xs font-bold uppercase tracking-widest mb-1'>Baby arrived on</p>
 								<h2 className='font-poppins font-extrabold text-2xl leading-tight'>
 									{capsule.birth_date
-										? new Date(capsule.birth_date).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+										? new Date(capsule.birth_date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
 										: 'The big day!'}
 								</h2>
 								{capsule.birth_time && <p className='text-white/80 font-semibold text-sm mt-0.5'>at {capsule.birth_time}</p>}

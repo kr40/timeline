@@ -31,6 +31,7 @@ export const TimelineCard = memo(({
 		<div className='relative bg-white w-full rounded-3xl p-5 shadow-md border-l-4 border-[#FF8C69] hover:shadow-lg transition-shadow duration-300 group'>
 			{isUnlocked && (
 				<button onClick={() => onEditClick(milestone)}
+					aria-label='Edit memory'
 					className='absolute p-2 text-[#FF8C69] opacity-0 group-hover:opacity-100 top-4 right-4 bg-orange-50 hover:bg-orange-100 rounded-full transition-opacity'>
 					<Pencil className='w-4 h-4' />
 				</button>
