@@ -1,3 +1,12 @@
+import { CountdownHero } from './home/CountdownHero';
+import { FruitTracker } from './home/FruitTracker';
+import { WeeklyFacts } from './home/WeeklyFacts';
+
 export const HomeTab = () => (
-	<div className='py-8 text-center text-slate-400 font-bold'>Home coming soon</div>
+	<div className='space-y-4 pb-4'>
+		<CountdownHero />
+		<FruitTracker />
+		<WeeklyFacts />
+		{/* PollWidget added in Task 5 */}
+	</div>
 );
