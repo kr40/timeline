@@ -1,0 +1,72 @@
+<h2>What should change in view-only mode?</h2>
+<p class="subtitle">Left = view-only (guest), Right = unlocked (edit mode). What differences feel right?</p>
+
+<div class="split">
+
+  <div class="mockup">
+    <div class="mockup-header">👀 View-only (guest)</div>
+    <div class="mockup-body" style="background:#fcf8f7;font-family:Nunito,sans-serif;padding:12px;display:flex;flex-direction:column;gap:10px;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+        <div style="font-weight:800;color:#c084a0;font-size:1rem;">🌸 Baby Memories</div>
+        <button style="background:transparent;border:1.5px solid #e8b4c8;color:#c084a0;border-radius:20px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">🔑 Unlock</button>
+      </div>
+      <!-- Timeline item -->
+      <div style="background:white;border-radius:12px;padding:12px;border:1px solid #f0e6e6;position:relative;">
+        <div style="font-weight:700;color:#c084a0;font-size:0.9rem;">First smile 😊</div>
+        <div style="font-size:0.7rem;color:#b89aaa;">March 2, 2024</div>
+        <div style="font-size:0.8rem;color:#a0758a;margin-top:4px;">Such a beautiful moment we'll never forget...</div>
+        <!-- No edit button -->
+      </div>
+      <div style="background:white;border-radius:12px;padding:12px;border:1px solid #f0e6e6;">
+        <div style="font-weight:700;color:#c084a0;font-size:0.9rem;">First steps 👣</div>
+        <div style="font-size:0.7rem;color:#b89aaa;">April 15, 2024</div>
+        <div style="font-size:0.8rem;color:#a0758a;margin-top:4px;">Took 3 steps then sat down laughing!</div>
+      </div>
+      <!-- No Add Memory button -->
+      <div style="text-align:center;margin-top:4px;font-size:0.7rem;color:#c0a0b0;">👀 Viewing memories</div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">✏️ Unlocked (edit mode)</div>
+    <div class="mockup-body" style="background:#fcf8f7;font-family:Nunito,sans-serif;padding:12px;display:flex;flex-direction:column;gap:10px;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+        <div style="font-weight:800;color:#c084a0;font-size:1rem;">🌸 Baby Memories</div>
+        <button style="background:transparent;border:1.5px solid #e8b4c8;color:#c084a0;border-radius:20px;padding:3px 10px;font-size:0.7rem;cursor:pointer;">🔒 Lock</button>
+      </div>
+      <!-- Timeline item with edit button -->
+      <div style="background:white;border-radius:12px;padding:12px;border:1px solid #f0e6e6;position:relative;">
+        <div style="font-weight:700;color:#c084a0;font-size:0.9rem;">First smile 😊</div>
+        <div style="font-size:0.7rem;color:#b89aaa;">March 2, 2024</div>
+        <div style="font-size:0.8rem;color:#a0758a;margin-top:4px;">Such a beautiful moment we'll never forget...</div>
+        <div style="position:absolute;top:10px;right:10px;display:flex;gap:4px;">
+          <button style="background:#fce4f0;border:none;border-radius:8px;padding:4px 6px;font-size:0.7rem;cursor:pointer;">✏️</button>
+        </div>
+      </div>
+      <div style="background:white;border-radius:12px;padding:12px;border:1px solid #f0e6e6;position:relative;">
+        <div style="font-weight:700;color:#c084a0;font-size:0.9rem;">First steps 👣</div>
+        <div style="font-size:0.7rem;color:#b89aaa;">April 15, 2024</div>
+        <div style="font-size:0.8rem;color:#a0758a;margin-top:4px;">Took 3 steps then sat down laughing!</div>
+        <div style="position:absolute;top:10px;right:10px;display:flex;gap:4px;">
+          <button style="background:#fce4f0;border:none;border-radius:8px;padding:4px 6px;font-size:0.7rem;cursor:pointer;">✏️</button>
+        </div>
+      </div>
+      <!-- Add Memory button -->
+      <button style="background:linear-gradient(135deg,#f4a0c0,#e8b4c8);color:white;border:none;border-radius:24px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;width:100%;">+ Add Memory ✨</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>Key differences shown above:</h3>
+  <ul style="color:#a0758a;font-size:0.9rem;line-height:1.8;">
+    <li>✅ No "Add Memory" button in view-only</li>
+    <li>✅ No edit ✏️ buttons on cards in view-only</li>
+    <li>✅ Small "🔑 Unlock" button in header (view-only) → "🔒 Lock" when unlocked</li>
+    <li>✅ Everything else identical — same timeline, same photos</li>
+  </ul>
+  <p style="color:#a0758a;font-size:0.85rem;">Does this look right, or do you want to change anything? (e.g. no lock button when unlocked, different placement, etc.)</p>
+</div>

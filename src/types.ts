@@ -18,3 +18,35 @@ export const getImages = (m: Pick<Milestone, 'image' | 'images'>): string[] => {
 	if (m.image) return [m.image];
 	return [];
 };
+
+export type Vote = {
+	id:         string;
+	voter_id:   string;
+	choice:     'boy' | 'girl';
+	voter_name: string | null;
+	created_at: string;
+};
+
+export type Wish = {
+	id:          string;
+	author_name: string;
+	message:     string;
+	created_at:  string;
+};
+
+export type BirthCapsule = {
+	id:               string;
+	birth_date:       string | null;
+	birth_time:       string | null;
+	weight_kg:        number | null;
+	length_cm:        number | null;
+	location:         string | null;
+	headlines:        string[];
+	sports_results:   string[];
+	top_song:         string | null;
+	top_movie:        string | null;
+	famous_birthdays: string[];
+	weather:          string | null;
+	notes:            string | null;
+	created_at:       string;
+};
