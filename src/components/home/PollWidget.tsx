@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Vote } from '../../types';
 
@@ -34,7 +34,9 @@ const fetchCounts = async (): Promise<{ boys: number; girls: number }> => {
 };
 
 export const PollWidget = () => {
-	const voterId = getOrCreateVoterId();
+	const voterIdRef = useRef<string | null>(null);
+	if (!voterIdRef.current) voterIdRef.current = getOrCreateVoterId();
+	const voterId = voterIdRef.current;
 	const [state, setState] = useState<PollState>({ status: 'loading' });
 
 	useEffect(() => {
@@ -59,11 +61,9 @@ export const PollWidget = () => {
 		const channel = supabase
 			.channel('votes-realtime')
 			.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, async () => {
-				setState(prev => {
-					if (prev.status !== 'voted') return prev;
-					fetchCounts().then(counts => setState(p => p.status === 'voted' ? { ...p, ...counts } : p)).catch(() => {});
-					return prev;
-				});
+				fetchCounts()
+					.then(counts => setState(p => p.status === 'voted' ? { ...p, ...counts } : p))
+					.catch(() => {});
 			})
 			.subscribe();
 		return () => { void supabase.removeChannel(channel); };
