@@ -1,4 +1,4 @@
-import { getDaysUntilEDD } from '../../config';
+import { getDaysUntilEDD, EDD } from '../../config';
 
 export const CountdownHero = () => {
 	const days      = getDaysUntilEDD();
@@ -17,7 +17,7 @@ export const CountdownHero = () => {
 					<p className='text-white/70 font-bold text-xs uppercase tracking-widest mb-1'>Baby arrives in</p>
 					<div className='font-poppins font-extrabold text-7xl leading-none'>{days}</div>
 					<p className='text-white/90 font-bold text-xl mt-1'>{days === 1 ? 'day' : 'days'} to go 🌟</p>
-					<p className='text-white/50 text-xs mt-3'>Estimated due date: 9 November 2026</p>
+					<p className='text-white/50 text-xs mt-3'>Estimated due date: {new Date(EDD + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
 				</>
 			)}
 		</div>
