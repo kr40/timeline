@@ -49,7 +49,7 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 			{!capsule ? (
 				<div className='rounded-3xl bg-white border border-slate-100 shadow-md p-8 text-center'>
 					<div className='text-6xl mb-4'>📚</div>
-					<h2 className='font-poppins font-extrabold text-xl text-[#1A1A2E] mb-2'>Baby Book Coming Soon</h2>
+					<h2 className='font-poppins font-extrabold text-xl text-[#1A1A2E] mb-2'>Baby Book Coming Soon ✨</h2>
 					<p className='text-sm text-[#6B7280] font-semibold leading-relaxed max-w-xs mx-auto'>
 						Fill this in when baby arrives — headlines, sports scores, famous birthdays, and all the details of the big day ✨
 					</p>
@@ -75,6 +75,7 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 							</div>
 							{isUnlocked && (
 								<button onClick={() => setShowModal(true)}
+									aria-label='Edit Birth Capsule'
 									className='p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors'>
 									<Pencil className='w-4 h-4 text-white' />
 								</button>
