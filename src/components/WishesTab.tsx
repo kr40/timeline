@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Wish } from '../types';
+import { ReactionBar } from './wishes/ReactionBar';
 
 const COLORS = [
 	'bg-[#FF8C69]/10 border-[#FF8C69]/20',
@@ -119,6 +120,7 @@ export const WishesTab = () => {
 						<span className='text-[10px] text-[#6B7280] font-semibold'>{relativeTime(wish.created_at)}</span>
 					</div>
 					<p className='text-sm text-[#1A1A2E] font-semibold leading-relaxed'>{wish.message}</p>
+					<ReactionBar wishId={wish.id} />
 				</div>
 			))}
 		</div>
