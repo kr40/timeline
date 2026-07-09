@@ -201,7 +201,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 				<form onSubmit={handleSubmit} className='p-8 space-y-6 overflow-y-auto'>
 					<div>
 						<label className='block pl-4 mb-2 text-sm font-bold text-slate-700'>
-							What happened? (Title) <span className='text-pink-500'>*</span>
+							What happened? (Title) <span className='text-[#FF8C69]'>*</span>
 						</label>
 						<input
 							type='text'
@@ -215,7 +215,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 
 					<div>
 						<label className='block pl-4 mb-2 text-sm font-bold text-slate-700'>
-							When did it happen? <span className='text-pink-500'>*</span>
+							When did it happen? <span className='text-[#FF8C69]'>*</span>
 						</label>
 						<input
 							type='date'
