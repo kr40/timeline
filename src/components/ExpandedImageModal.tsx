@@ -108,21 +108,21 @@ export const ExpandedImageModal = ({ images, initialIndex, onClose, title }: Pro
 
 				<button
 					onClick={onClose}
-					className='absolute z-10 p-2 bg-white rounded-full shadow-xl -top-4 -right-4 text-slate-800 hover:bg-pink-50 hover:text-pink-500 transition-colors'>
+					className='absolute z-10 p-2 bg-white rounded-full shadow-xl -top-4 -right-4 text-slate-800 hover:bg-[#FF8C69]/10 hover:text-[#FF8C69] transition-colors'>
 					<X className='w-6 h-6' />
 				</button>
 
 				{isMulti && (
 					<button
 						onClick={() => navigate(-1)}
-						className='absolute left-2 sm:left-0 sm:-translate-x-full sm:-ml-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 rounded-full shadow-xl text-slate-800 hover:bg-pink-50 hover:text-pink-500 transition-colors'>
+						className='absolute left-2 sm:left-0 sm:-translate-x-full sm:-ml-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 rounded-full shadow-xl text-slate-800 hover:bg-[#FF8C69]/10 hover:text-[#FF8C69] transition-colors'>
 						<ChevronLeft className='w-6 h-6' />
 					</button>
 				)}
 				{isMulti && (
 					<button
 						onClick={() => navigate(1)}
-						className='absolute right-2 sm:right-0 sm:translate-x-full sm:mr-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 rounded-full shadow-xl text-slate-800 hover:bg-pink-50 hover:text-pink-500 transition-colors'>
+						className='absolute right-2 sm:right-0 sm:translate-x-full sm:mr-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 rounded-full shadow-xl text-slate-800 hover:bg-[#FF8C69]/10 hover:text-[#FF8C69] transition-colors'>
 						<ChevronRight className='w-6 h-6' />
 					</button>
 				)}

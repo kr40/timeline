@@ -1,20 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Vote } from '../../types';
-
-const VOTER_ID_KEY = 'timeline_vote_id';
-
-function getOrCreateVoterId(): string {
-	try {
-		const existing = localStorage.getItem(VOTER_ID_KEY);
-		if (existing) return existing;
-		const id = crypto.randomUUID();
-		localStorage.setItem(VOTER_ID_KEY, id);
-		return id;
-	} catch {
-		return crypto.randomUUID();
-	}
-}
+import { getVoterId } from '../../utils';
 
 type PollState =
 	| { status: 'loading' }
@@ -34,8 +21,7 @@ const fetchCounts = async (): Promise<{ boys: number; girls: number }> => {
 };
 
 export const PollWidget = () => {
-	const voterIdRef = useRef<string | null>(null);
-	if (!voterIdRef.current) voterIdRef.current = getOrCreateVoterId();
+	const voterIdRef = useRef(getVoterId());
 	const voterId = voterIdRef.current;
 	const [state, setState] = useState<PollState>({ status: 'loading' });
 

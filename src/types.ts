@@ -50,3 +50,37 @@ export type BirthCapsule = {
 	notes:            string | null;
 	created_at:       string;
 };
+
+export type TraitVote = {
+	id: string;
+	voter_id: string;
+	trait: 'eyes' | 'nose' | 'hair' | 'smile';
+	choice: 'mum' | 'dad' | 'mix';
+	created_at: string;
+};
+
+export type Guess = {
+	id: string;
+	voter_id: string;
+	guesser_name: string;
+	guess_date: string;
+	is_winner: boolean;
+	created_at: string;
+};
+
+export type WishReaction = {
+	id: string;
+	voter_id: string;
+	wish_id: string;
+	emoji: '❤️' | '😂' | '🥹' | '🎉';
+	created_at: string;
+};
+
+export type Question = {
+	id: string;
+	asker_name: string;
+	question: string;
+	answer: string | null;
+	answered_at: string | null;
+	created_at: string;
+};

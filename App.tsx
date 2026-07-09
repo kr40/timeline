@@ -4,6 +4,7 @@ import { BabyBookTab } from './src/components/BabyBookTab';
 import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { HomeTab } from './src/components/HomeTab';
 import { MemoryModal } from './src/components/MemoryModal';
+import { QATab } from './src/components/QATab';
 import { TabBar, TabId } from './src/components/TabBar';
 import { TimelineTab } from './src/components/TimelineTab';
 import { WishesTab } from './src/components/WishesTab';
@@ -156,7 +157,7 @@ const App = () => {
 			</header>
 
 			<main className='max-w-[600px] mx-auto px-4 pt-4'>
-				{activeTab === 'home'     && <HomeTab />}
+				{activeTab === 'home'     && <HomeTab isUnlocked={isUnlocked} />}
 				{activeTab === 'timeline' && (
 					<TimelineTab
 						milestones={milestones}
@@ -171,6 +172,7 @@ const App = () => {
 					/>
 				)}
 				{activeTab === 'wishes'   && <WishesTab />}
+				{activeTab === 'qa'       && <QATab isUnlocked={isUnlocked} />}
 				{activeTab === 'babybook' && <BabyBookTab isUnlocked={isUnlocked} />}
 			</main>
 
