@@ -156,7 +156,7 @@ const App = () => {
 			</header>
 
 			<main className='max-w-[600px] mx-auto px-4 pt-4'>
-				{activeTab === 'home'     && <HomeTab />}
+				{activeTab === 'home'     && <HomeTab isUnlocked={isUnlocked} />}
 				{activeTab === 'timeline' && (
 					<TimelineTab
 						milestones={milestones}
