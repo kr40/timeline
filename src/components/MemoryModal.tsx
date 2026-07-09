@@ -135,19 +135,19 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 
 	return (
 		<div
-			className='fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-sm'
+			className='fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-[#1A1A2E]/40 backdrop-blur-sm'
 			aria-label='Close dialog'
 			onClick={onClose}>
 			<div
 				role='dialog'
 				aria-modal='true'
 				aria-labelledby='memory-modal-title'
-				className='bg-white w-full max-w-lg max-h-[90vh] flex flex-col rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-pink-100 transform transition-all my-8'
+				className='bg-white w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl shadow-xl overflow-hidden transform transition-all my-8'
 				onClick={(e) => e.stopPropagation()}>
 
 				{/* Header */}
-				<div className='flex items-center justify-between px-8 py-6 border-b-2 border-pink-100 bg-pink-50 shrink-0'>
-					<h2 id='memory-modal-title' className='flex items-center gap-2 text-2xl font-bold text-slate-800'>
+				<div className='flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-[#FF8C69]/5 shrink-0'>
+					<h2 id='memory-modal-title' className='flex items-center gap-2 text-2xl font-poppins font-bold text-[#1A1A2E]'>
 						<Sparkles className='w-6 h-6 text-yellow-400' />
 						{editingMilestone ? 'Edit Memory' : 'New Memory'}
 					</h2>
@@ -167,7 +167,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 												setOperationError(err.message || 'Failed to delete memory. Please try again.');
 											}
 										}}
-										className='px-3 py-1 text-sm font-bold text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors'>
+										className='px-3 py-1 text-sm font-bold text-white bg-[#B39DDB] rounded-full hover:opacity-90 transition-opacity'>
 										Yes, delete
 									</button>
 									<button
@@ -190,7 +190,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 						<button
 							type='button'
 							onClick={onClose}
-							className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-pink-500 hover:bg-pink-100'
+							className='p-2 transition-colors bg-white rounded-full text-slate-400 hover:text-[#FF8C69] hover:bg-[#FF8C69]/10'
 							title='Close'>
 							<X className='w-6 h-6' />
 						</button>
@@ -209,7 +209,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 							placeholder='e.g. First Kicks!'
 							value={localEvent.title}
 							onChange={(e) => setLocalEvent((prev) => ({ ...prev, title: e.target.value }))}
-							className='w-full px-6 py-3 text-lg transition-colors border-2 rounded-full bg-slate-50 border-slate-100 focus:outline-none focus:border-pink-300 focus:bg-white'
+							className='w-full px-6 py-3 text-lg transition-colors border-2 rounded-full bg-white border-slate-200 focus:outline-none focus:border-[#FF8C69] focus:bg-white'
 						/>
 					</div>
 
@@ -222,7 +222,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 							required
 							value={localEvent.date}
 							onChange={(e) => setLocalEvent((prev) => ({ ...prev, date: e.target.value }))}
-							className='w-full px-6 py-3 text-lg transition-colors border-2 rounded-full bg-slate-50 border-slate-100 focus:outline-none focus:border-pink-300 focus:bg-white text-slate-600'
+							className='w-full px-6 py-3 text-lg transition-colors border-2 rounded-full bg-white border-slate-200 focus:outline-none focus:border-[#FF8C69] focus:bg-white text-slate-600'
 						/>
 					</div>
 
@@ -232,7 +232,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 							placeholder='It felt like little butterflies...'
 							value={localEvent.description}
 							onChange={(e) => setLocalEvent((prev) => ({ ...prev, description: e.target.value }))}
-							className='w-full h-32 px-6 py-4 text-lg transition-colors border-2 resize-none bg-slate-50 border-slate-100 rounded-3xl focus:outline-none focus:border-pink-300 focus:bg-white'
+							className='w-full h-32 px-6 py-4 text-lg transition-colors border-2 resize-none bg-white border-slate-200 rounded-3xl focus:outline-none focus:border-[#FF8C69] focus:bg-white'
 						/>
 					</div>
 
@@ -246,7 +246,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 									onClick={() => setLocalEvent((prev) => ({ ...prev, icon: iconName }))}
 									className={`p-3 rounded-full border-2 transition-all duration-300 ${
 										localEvent.icon === iconName
-											? 'border-pink-400 bg-pink-50 scale-110 shadow-md rotate-6'
+											? 'border-[#FF8C69] bg-[#FF8C69]/10 scale-110 shadow-md rotate-6'
 											: 'border-slate-100 bg-slate-50 hover:bg-slate-100 hover:scale-105'
 									}`}>
 									{renderIcon(iconName)}
@@ -300,7 +300,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 								{newFiles.map(({ previewUrl }, i) => (
 									<div
 										key={`new-${i}`}
-										className='relative aspect-square rounded-xl overflow-hidden border-2 border-pink-200 bg-slate-50'>
+										className='relative aspect-square rounded-xl overflow-hidden border-2 border-[#FF8C69]/30 bg-slate-50'>
 										<img
 											src={previewUrl}
 											alt={`New photo ${i + 1}`}
@@ -332,7 +332,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 								className={`flex items-center justify-center gap-2 w-full p-6 transition-all border-4 border-dashed rounded-3xl group ${
 									isSaving
 										? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-										: 'border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-pink-200 hover:text-pink-400'
+										: 'border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-[#FF8C69] hover:text-[#FF8C69]'
 								}`}>
 								<div className='p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform'>
 									<ImageIcon className='w-6 h-6' />
@@ -348,7 +348,7 @@ export const MemoryModal = ({ editingMilestone, onClose, onSave, onDelete }: Pro
 						<button
 							type='submit'
 							disabled={isSaving}
-							className='w-full py-4 text-xl font-bold text-white transition transform flex justify-center items-center gap-2 bg-pink-400 rounded-full shadow-lg hover:bg-pink-500 shadow-pink-200 active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed'>
+							className='w-full py-4 text-xl font-bold text-white transition transform flex justify-center items-center gap-2 bg-[#FF8C69] rounded-full shadow-lg hover:opacity-90 active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed'>
 							{isSaving ? 'Saving...' : 'Save this Memory 💖'}
 						</button>
 					</div>
