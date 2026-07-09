@@ -48,6 +48,11 @@ export type BirthCapsule = {
 	famous_birthdays: string[];
 	weather:          string | null;
 	notes:            string | null;
+	baby_name:        string | null;
+	name_meaning:     string | null;
+	nicknames:        string[];
+	letter_to_baby:   string | null;
+	visitors:         string[];
 	created_at:       string;
 };
 

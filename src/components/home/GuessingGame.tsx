@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { getVoterId } from '../../utils';
+import { getGuessDateRange } from '../../config';
 import { Guess } from '../../types';
 
 type GameState = 'loading' | 'form' | 'voted';
+
+const { min: MIN_GUESS_DATE, max: MAX_GUESS_DATE } = getGuessDateRange();
 
 const fmtDate = (d: string) =>
 	new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -41,6 +44,10 @@ export const GuessingGame = ({ isUnlocked }: { isUnlocked: boolean }) => {
 
 	const submit = async () => {
 		if (!name.trim() || !date) return;
+		if (date < MIN_GUESS_DATE || date > MAX_GUESS_DATE) {
+			setError(`Guess must be between ${fmtDate(MIN_GUESS_DATE)} and ${fmtDate(MAX_GUESS_DATE)}.`);
+			return;
+		}
 		setSubmitting(true);
 		setError(null);
 		try {
@@ -73,6 +80,7 @@ export const GuessingGame = ({ isUnlocked }: { isUnlocked: boolean }) => {
 		const { data: capsule } = await supabase
 			.from('birth_capsule')
 			.select('birth_date')
+			.order('created_at', { ascending: true })
 			.limit(1)
 			.maybeSingle();
 		if (!capsule?.birth_date) {
@@ -104,6 +112,8 @@ export const GuessingGame = ({ isUnlocked }: { isUnlocked: boolean }) => {
 					<input
 						type='date'
 						value={date}
+						min={MIN_GUESS_DATE}
+						max={MAX_GUESS_DATE}
 						onChange={e => setDate(e.target.value)}
 						className='w-full rounded-full border-2 border-slate-200 px-5 py-3 text-sm font-nunito focus:outline-none focus:border-[#FF8C69]'
 					/>
