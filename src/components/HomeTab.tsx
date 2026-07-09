@@ -9,9 +9,9 @@ export const HomeTab = ({ isUnlocked }: { isUnlocked: boolean }) => (
 	<div className='space-y-4 pb-4'>
 		<CountdownHero />
 		<FruitTracker />
+		<WeeklyFacts />
 		<PollWidget />
 		<TraitPolls />
 		<GuessingGame isUnlocked={isUnlocked} />
-		<WeeklyFacts />
 	</div>
 );
