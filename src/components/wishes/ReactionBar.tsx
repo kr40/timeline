@@ -47,16 +47,18 @@ export const ReactionBar = ({ wishId }: { wishId: string }) => {
 
 		try {
 			if (isActive) {
-				await supabase.from('wish_reactions').delete()
+				const { error } = await supabase.from('wish_reactions').delete()
 					.eq('voter_id', voterId.current)
 					.eq('wish_id', wishId)
 					.eq('emoji', emoji);
+				if (error) throw error;
 			} else {
-				await supabase.from('wish_reactions').insert({
+				const { error } = await supabase.from('wish_reactions').insert({
 					voter_id: voterId.current,
 					wish_id:  wishId,
 					emoji,
 				});
+				if (error) throw error;
 			}
 		} catch {
 			// Roll back optimistic update
