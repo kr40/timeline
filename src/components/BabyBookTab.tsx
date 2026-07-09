@@ -25,6 +25,7 @@ const CapsuleSection = ({ title, items, color }: {
 	</div>
 );
 
+// Birth capsule is permanently sealed after first save — no UI edit path. Fix mistakes via a direct Supabase row edit.
 export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 	const [capsule, setCapsule]     = useState<BirthCapsule | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +34,7 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 	useEffect(() => {
 		(async () => {
 			try {
-				const { data } = await supabase.from('birth_capsule').select('*').limit(1).maybeSingle();
+				const { data } = await supabase.from('birth_capsule').select('*').order('created_at', { ascending: true }).limit(1).maybeSingle();
 				setCapsule(data ?? null);
 			} finally {
 				setIsLoading(false);

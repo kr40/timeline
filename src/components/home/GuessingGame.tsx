@@ -80,6 +80,7 @@ export const GuessingGame = ({ isUnlocked }: { isUnlocked: boolean }) => {
 		const { data: capsule } = await supabase
 			.from('birth_capsule')
 			.select('birth_date')
+			.order('created_at', { ascending: true })
 			.limit(1)
 			.maybeSingle();
 		if (!capsule?.birth_date) {
