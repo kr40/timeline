@@ -69,10 +69,15 @@ export const TraitPolls = () => {
 		counts[choice]++;
 		setStates(prev => ({ ...prev, [trait]: { voted: choice, counts } }));
 
-		await supabase.from('trait_votes').upsert(
+		const { error } = await supabase.from('trait_votes').upsert(
 			{ voter_id: voterId.current, trait, choice },
 			{ onConflict: 'voter_id,trait' },
 		);
+
+		if (error) {
+			// Roll back optimistic update on failure
+			setStates(prev => ({ ...prev, [trait]: old }));
+		}
 	};
 
 	return (

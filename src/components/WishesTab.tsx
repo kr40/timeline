@@ -30,6 +30,7 @@ export const WishesTab = () => {
 	const [message, setMessage]         = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [pendingIds, setPendingIds]   = useState<Set<string>>(new Set());
 
 	useEffect(() => {
 		const load = async () => {
@@ -60,6 +61,7 @@ export const WishesTab = () => {
 			created_at: new Date().toISOString(),
 		};
 		setWishes(prev => [optimistic, ...prev]);
+		setPendingIds(prev => new Set(prev).add(optimistic.id));
 		setAuthorName('');
 		setMessage('');
 
@@ -72,6 +74,11 @@ export const WishesTab = () => {
 			setWishes(prev => prev.filter(w => w.id !== optimistic.id));
 			setSubmitError(err.message || 'Failed to post wish. Please try again.');
 		} finally {
+			setPendingIds(prev => {
+				const next = new Set(prev);
+				next.delete(optimistic.id);
+				return next;
+			});
 			setIsSubmitting(false);
 		}
 	};
@@ -120,7 +127,7 @@ export const WishesTab = () => {
 						<span className='text-[10px] text-[#6B7280] font-semibold'>{relativeTime(wish.created_at)}</span>
 					</div>
 					<p className='text-sm text-[#1A1A2E] font-semibold leading-relaxed'>{wish.message}</p>
-					<ReactionBar wishId={wish.id} />
+					{!pendingIds.has(wish.id) && <ReactionBar wishId={wish.id} />}
 				</div>
 			))}
 		</div>
