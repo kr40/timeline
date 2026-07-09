@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Pencil } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { BirthCapsule } from '../types';
 import { BirthCapsuleModal } from './BirthCapsuleModal';
+import { getZodiacSign, getBirthstone } from '../data/zodiacData';
 
 const SECTION_COLORS = {
 	peach:    'bg-[#FF8C69]/10 border-[#FF8C69]/20',
@@ -47,6 +47,10 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 		</div>
 	);
 
+	const zodiac    = capsule?.birth_date ? getZodiacSign(capsule.birth_date) : null;
+	const birthstone = capsule?.birth_date ? getBirthstone(capsule.birth_date) : null;
+	const hasIdentity = Boolean(capsule?.baby_name || capsule?.name_meaning || (capsule?.nicknames?.length ?? 0) > 0 || zodiac || birthstone);
+
 	return (
 		<div className='space-y-4 pb-4'>
 			{!capsule ? (
@@ -59,30 +63,21 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 					{isUnlocked && (
 						<button onClick={() => setShowModal(true)}
 							className='mt-6 px-6 py-3 rounded-full font-poppins font-bold text-white bg-[#FF8C69] hover:bg-[#e87a57] active:scale-95 transition-all text-sm'>
-							+ Add Birth Details
+							📝 Fill In Birth Capsule
 						</button>
 					)}
 				</div>
 			) : (
 				<>
 					<div className='rounded-3xl bg-gradient-to-br from-[#FF8C69] to-[#e8744f] p-6 text-white shadow-lg shadow-[#FF8C69]/30'>
-						<div className='flex items-start justify-between'>
-							<div>
-								<p className='text-white/70 text-xs font-bold uppercase tracking-widest mb-1'>Baby arrived on</p>
-								<h2 className='font-poppins font-extrabold text-2xl leading-tight'>
-									{capsule.birth_date
-										? new Date(capsule.birth_date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
-										: 'The big day!'}
-								</h2>
-								{capsule.birth_time && <p className='text-white/80 font-semibold text-sm mt-0.5'>at {capsule.birth_time}</p>}
-							</div>
-							{isUnlocked && (
-								<button onClick={() => setShowModal(true)}
-									aria-label='Edit Birth Capsule'
-									className='p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors'>
-									<Pencil className='w-4 h-4 text-white' />
-								</button>
-							)}
+						<div>
+							<p className='text-white/70 text-xs font-bold uppercase tracking-widest mb-1'>Baby arrived on</p>
+							<h2 className='font-poppins font-extrabold text-2xl leading-tight'>
+								{capsule.birth_date
+									? new Date(capsule.birth_date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+									: 'The big day!'}
+							</h2>
+							{capsule.birth_time && <p className='text-white/80 font-semibold text-sm mt-0.5'>at {capsule.birth_time}</p>}
 						</div>
 						{(capsule.weight_kg || capsule.length_cm || capsule.location) && (
 							<div className='flex gap-3 mt-4 flex-wrap'>
@@ -107,6 +102,50 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 							</div>
 						)}
 					</div>
+
+					{hasIdentity && (
+						<div className='rounded-3xl border p-5 bg-[#FF8C69]/10 border-[#FF8C69]/20'>
+							<h3 className='font-poppins font-bold text-[#1A1A2E] text-sm mb-3'>Baby's Identity 👶</h3>
+							{capsule.baby_name && (
+								<p className='font-poppins font-extrabold text-xl text-[#1A1A2E]'>{capsule.baby_name}</p>
+							)}
+							{capsule.name_meaning && (
+								<p className='text-sm text-[#6B7280] font-semibold italic mt-1'>{capsule.name_meaning}</p>
+							)}
+							{capsule.nicknames?.length > 0 && (
+								<div className='flex gap-2 flex-wrap mt-3'>
+									{capsule.nicknames.map((nick, i) => (
+										<span key={i} className='bg-white text-[#FF8C69] text-xs font-bold px-3 py-1 rounded-full'>{nick}</span>
+									))}
+								</div>
+							)}
+							{(zodiac || birthstone) && (
+								<div className='flex gap-2 mt-3'>
+									{zodiac && (
+										<span className='bg-white/70 text-[#1A1A2E] text-xs font-bold px-3 py-1.5 rounded-full'>
+											{zodiac.emoji} {zodiac.name}
+										</span>
+									)}
+									{birthstone && (
+										<span className='bg-white/70 text-[#1A1A2E] text-xs font-bold px-3 py-1.5 rounded-full'>
+											{birthstone.emoji} {birthstone.name}
+										</span>
+									)}
+								</div>
+							)}
+						</div>
+					)}
+
+					{capsule.letter_to_baby && (
+						<div className='rounded-3xl border p-5 bg-[#B39DDB]/10 border-[#B39DDB]/20'>
+							<h3 className='font-poppins font-bold text-[#1A1A2E] text-sm mb-3'>💌 A Letter To You</h3>
+							<p className='text-sm text-[#1A1A2E] font-semibold leading-relaxed whitespace-pre-line'>{capsule.letter_to_baby}</p>
+						</div>
+					)}
+
+					{capsule.visitors?.length > 0 && (
+						<CapsuleSection title='Who Was There 👪' items={capsule.visitors} color='mint' />
+					)}
 
 					{capsule.headlines?.length > 0        && <CapsuleSection title='World Headlines 📰' items={capsule.headlines} color='peach' />}
 					{capsule.sports_results?.length > 0   && <CapsuleSection title='Sports ⚽' items={capsule.sports_results} color='mint' />}
@@ -135,7 +174,6 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 
 			{showModal && (
 				<BirthCapsuleModal
-					existing={capsule}
 					onClose={() => setShowModal(false)}
 					onSaved={updated => { setCapsule(updated); setShowModal(false); }}
 				/>
