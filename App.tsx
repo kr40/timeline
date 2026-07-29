@@ -5,6 +5,7 @@ import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { HomeTab } from './src/components/HomeTab';
 import { MemoryModal } from './src/components/MemoryModal';
 import { QATab } from './src/components/QATab';
+import { ShowerTab } from './src/components/ShowerTab';
 import { TabBar, TabId } from './src/components/TabBar';
 import { TimelineTab } from './src/components/TimelineTab';
 import { WishesTab } from './src/components/WishesTab';
@@ -22,7 +23,13 @@ const App = () => {
 	const [error, setError]             = useState<string | null>(null);
 	const [page, setPage]               = useState(0);
 	const [hasMore, setHasMore]         = useState(true);
-	const [activeTab, setActiveTab]     = useState<TabId>('home');
+	const [activeTab, setActiveTab]     = useState<TabId>(() => {
+		if (window.location.hash === '#shower') {
+			try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* ignore */ }
+			return 'shower';
+		}
+		return 'home';
+	});
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [expandedGallery, setExpandedGallery] = useState<{ images: string[]; index: number; title: string } | null>(null);
 
@@ -173,6 +180,9 @@ const App = () => {
 				)}
 				{activeTab === 'wishes'   && <WishesTab />}
 				{activeTab === 'qa'       && <QATab isUnlocked={isUnlocked} />}
+				{activeTab === 'shower' && (
+					<ShowerTab onImageClick={url => setExpandedGallery({ images: [url], index: 0, title: 'Baby Shower' })} />
+				)}
 				{activeTab === 'babybook' && <BabyBookTab isUnlocked={isUnlocked} />}
 			</main>
 

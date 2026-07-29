@@ -1,6 +1,6 @@
-import { BookOpen, HandHeart, Home, Library, MessageCircle } from 'lucide-react';
+import { BookOpen, HandHeart, Home, Library, MessageCircle, PartyPopper } from 'lucide-react';
 
-export type TabId = 'home' | 'timeline' | 'wishes' | 'qa' | 'babybook';
+export type TabId = 'home' | 'timeline' | 'wishes' | 'qa' | 'shower' | 'babybook';
 
 type Tab = { id: TabId; label: string; Icon: React.FC<{ className?: string }> };
 
@@ -9,6 +9,7 @@ const TABS: Tab[] = [
 	{ id: 'timeline', label: 'Timeline',  Icon: BookOpen },
 	{ id: 'wishes',   label: 'Blessings', Icon: HandHeart },
 	{ id: 'qa',       label: 'Q&A',       Icon: MessageCircle },
+	{ id: 'shower',   label: 'Shower',    Icon: PartyPopper },
 	{ id: 'babybook', label: 'Baby Book', Icon: Library },
 ];
 
@@ -23,7 +24,7 @@ export const TabBar = ({ activeTab, onTabChange }: Props) => (
 					<button
 						key={id}
 						onClick={() => onTabChange(id)}
-						className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-2xl transition-colors ${
+						className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-2xl transition-colors ${
 							active ? 'text-[#FF8C69]' : 'text-slate-400'
 						}`}>
 						<Icon className={`w-6 h-6 transition-transform duration-200 ${active ? 'scale-110' : ''}`} />
