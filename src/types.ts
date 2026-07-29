@@ -31,6 +31,7 @@ export type Wish = {
 	id:          string;
 	author_name: string;
 	message:     string;
+	category:    'blessing' | 'advice' | null;
 	created_at:  string;
 };
 
@@ -87,5 +88,21 @@ export type Question = {
 	question: string;
 	answer: string | null;
 	answered_at: string | null;
+	created_at: string;
+};
+
+export type FunPollVote = {
+	id: string;
+	voter_id: string;
+	poll: 'sleep' | 'diaper' | 'inherit' | 'pushover' | 'googler';
+	choice: 'aditi' | 'kartik';
+	created_at: string;
+};
+
+export type ShowerPost = {
+	id: string;
+	author_name: string;
+	message: string;
+	image_url: string | null;
 	created_at: string;
 };
