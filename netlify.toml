@@ -2,6 +2,11 @@
 publish = "dist"
 command = "npm run build"
 
+# Pinned so a change to Netlify's default runtime can't silently break
+# builds or functions. 22 is the version this site is verified working on.
+[build.environment]
+NODE_VERSION = "22"
+
 [dev]
 command = "npm run dev"
 port = 8888
