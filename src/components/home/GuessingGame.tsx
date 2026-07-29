@@ -172,8 +172,8 @@ export const GuessingGame = ({ isUnlocked }: { isUnlocked: boolean }) => {
 									g.is_winner ? 'bg-yellow-50 border-2 border-yellow-300' : 'bg-slate-50'
 								}`}>
 								<div>
-									<span className='text-sm font-bold text-[#1A1A2E]'>{g.guesser_name}</span>
-									<span className='text-xs text-slate-400 ml-2'>{fmtDate(g.guess_date)}</span>
+									<p className='text-xs text-slate-400 font-semibold'>{g.guesser_name}</p>
+									<p className='font-poppins font-bold text-base text-[#1A1A2E]'>{fmtDate(g.guess_date)}</p>
 								</div>
 								{g.is_winner && <span className='text-lg'>🏆</span>}
 							</div>
