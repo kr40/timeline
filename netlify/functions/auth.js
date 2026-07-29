@@ -1,6 +1,7 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
-exports.handler = async function (event, context) {
+// package.json sets "type": "module", so this file must use ESM syntax.
+export const handler = async function (event, context) {
 	// The Private key stays safely on Netlify's backend servers
 	const privateApiKey = process.env.IMAGEKIT_PRIVATE_KEY;
 
