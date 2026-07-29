@@ -124,8 +124,10 @@ export const ShowerTab = ({ onImageClick }: { onImageClick: (url: string) => voi
 					) : (
 						<button type='button' disabled={isSubmitting}
 							onClick={() => fileInputRef.current?.click()}
-							className='flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:border-[#FF8C69]/50 hover:text-[#FF8C69] transition-colors text-sm font-semibold'>
-							<ImageIcon className='w-4 h-4' /> Add a photo (optional)
+							className='flex flex-col items-center justify-center gap-1.5 w-full py-6 border-2 border-dashed border-[#FF8C69]/50 bg-[#FF8C69]/5 rounded-2xl text-[#FF8C69] hover:bg-[#FF8C69]/10 hover:border-[#FF8C69] active:scale-[0.98] transition-all disabled:opacity-60'>
+							<ImageIcon className='w-7 h-7' />
+							<span className='font-poppins font-bold text-base'>Add a photo 📸</span>
+							<span className='text-[11px] font-semibold text-[#FF8C69]/70'>Optional — but we'd love to see you!</span>
 						</button>
 					)}
 
