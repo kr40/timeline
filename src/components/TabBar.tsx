@@ -13,12 +13,12 @@ const TABS: Tab[] = [
 	{ id: 'babybook', label: 'Baby Book', Icon: Library },
 ];
 
-type Props = { activeTab: TabId; onTabChange: (tab: TabId) => void };
+type Props = { activeTab: TabId; onTabChange: (tab: TabId) => void; visibleTabs: TabId[] };
 
-export const TabBar = ({ activeTab, onTabChange }: Props) => (
+export const TabBar = ({ activeTab, onTabChange, visibleTabs }: Props) => (
 	<nav className='fixed bottom-0 inset-x-0 bg-white border-t border-slate-100 z-30'>
 		<div className='max-w-[600px] mx-auto flex justify-around items-center py-2'>
-			{TABS.map(({ id, label, Icon }) => {
+			{TABS.filter(t => visibleTabs.includes(t.id)).map(({ id, label, Icon }) => {
 				const active = activeTab === id;
 				return (
 					<button
