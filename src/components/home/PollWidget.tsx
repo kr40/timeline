@@ -57,7 +57,8 @@ export const PollWidget = () => {
 
 	const handleVote = async (choice: 'boy' | 'girl') => {
 		if (state.status !== 'ready') return;
-		const voterName = state.voterName.trim() || null;
+		const voterName = state.voterName.trim();
+		if (!voterName) return;
 		setState({ status: 'submitting' });
 		try {
 			const { error } = await supabase.from('votes').insert({ voter_id: voterId, choice, voter_name: voterName });
@@ -89,18 +90,18 @@ export const PollWidget = () => {
 				<>
 					<input
 						type='text'
-						placeholder='Your name (optional)'
+						placeholder='Your name'
 						value={state.voterName}
 						onChange={e => setState({ status: 'ready', voterName: e.target.value })}
 						className='w-full px-4 py-2.5 mb-4 text-sm border-2 border-slate-100 rounded-full bg-slate-50 focus:outline-none focus:border-[#6CC9C9] transition-colors'
 					/>
 					<div className='grid grid-cols-2 gap-3'>
-						<button onClick={() => handleVote('boy')}
-							className='flex items-center justify-center gap-2 py-4 rounded-2xl font-poppins font-bold text-white bg-[#6BAED6] hover:bg-[#5a9ec6] active:scale-95 transition-all text-lg shadow-md shadow-[#6BAED6]/30'>
+						<button onClick={() => handleVote('boy')} disabled={!state.voterName.trim()}
+							className='flex items-center justify-center gap-2 py-4 rounded-2xl font-poppins font-bold text-white bg-[#6BAED6] hover:bg-[#5a9ec6] active:scale-95 transition-all text-lg shadow-md shadow-[#6BAED6]/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100'>
 							💙 Boy
 						</button>
-						<button onClick={() => handleVote('girl')}
-							className='flex items-center justify-center gap-2 py-4 rounded-2xl font-poppins font-bold text-white bg-[#FF8FAB] hover:bg-[#ff7a9c] active:scale-95 transition-all text-lg shadow-md shadow-[#FF8FAB]/30'>
+						<button onClick={() => handleVote('girl')} disabled={!state.voterName.trim()}
+							className='flex items-center justify-center gap-2 py-4 rounded-2xl font-poppins font-bold text-white bg-[#FF8FAB] hover:bg-[#ff7a9c] active:scale-95 transition-all text-lg shadow-md shadow-[#FF8FAB]/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100'>
 							🩷 Girl
 						</button>
 					</div>
