@@ -1,6 +1,6 @@
-import { BookOpen, HandHeart, Home, Library, MessageCircle, PartyPopper } from 'lucide-react';
+import { BookOpen, HandHeart, Home, Library, PartyPopper } from 'lucide-react';
 
-export type TabId = 'home' | 'timeline' | 'wishes' | 'qa' | 'shower' | 'babybook';
+export type TabId = 'home' | 'timeline' | 'wishes' | 'shower' | 'babybook';
 
 type Tab = { id: TabId; label: string; Icon: React.FC<{ className?: string }> };
 
@@ -8,7 +8,6 @@ const TABS: Tab[] = [
 	{ id: 'home',     label: 'Home',      Icon: Home },
 	{ id: 'timeline', label: 'Timeline',  Icon: BookOpen },
 	{ id: 'wishes',   label: 'Blessings', Icon: HandHeart },
-	{ id: 'qa',       label: 'Q&A',       Icon: MessageCircle },
 	{ id: 'shower',   label: 'Shower',    Icon: PartyPopper },
 	{ id: 'babybook', label: 'Baby Book', Icon: Library },
 ];

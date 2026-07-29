@@ -82,15 +82,6 @@ export type WishReaction = {
 	created_at: string;
 };
 
-export type Question = {
-	id: string;
-	asker_name: string;
-	question: string;
-	answer: string | null;
-	answered_at: string | null;
-	created_at: string;
-};
-
 export type FunPollVote = {
 	id: string;
 	voter_id: string;

@@ -4,7 +4,6 @@ import { BabyBookTab } from './src/components/BabyBookTab';
 import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { HomeTab } from './src/components/HomeTab';
 import { MemoryModal } from './src/components/MemoryModal';
-import { QATab } from './src/components/QATab';
 import { ShowerTab } from './src/components/ShowerTab';
 import { TabBar, TabId } from './src/components/TabBar';
 import { TimelineTab } from './src/components/TimelineTab';
@@ -53,8 +52,8 @@ const App = () => {
 
 	const preShower = isPreShowerMode() && !isUnlocked;
 	const visibleTabs: TabId[] = preShower
-		? ['home', 'wishes', 'qa', 'shower']
-		: ['home', 'timeline', 'wishes', 'qa', 'shower', 'babybook'];
+		? ['home', 'wishes', 'shower']
+		: ['home', 'timeline', 'wishes', 'shower', 'babybook'];
 
 	const titleTaps = useRef<{ count: number; timer: ReturnType<typeof setTimeout> | null }>({ count: 0, timer: null });
 	const handleTitleTap = () => {
@@ -205,7 +204,6 @@ const App = () => {
 					/>
 				)}
 				{activeTab === 'wishes'   && <WishesTab />}
-				{activeTab === 'qa'       && <QATab isUnlocked={isUnlocked} />}
 				{activeTab === 'shower' && (
 					<ShowerTab onImageClick={url => setExpandedGallery({ images: [url], index: 0, title: 'Baby Shower' })} />
 				)}
