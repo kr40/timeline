@@ -100,7 +100,7 @@ const App = () => {
 	}, []);
 
 	useEffect(() => {
-		if (authState === null && !isPreShowerMode()) return;
+		if (authState === null) return;
 		fetchMilestones(0, true);
 	}, [fetchMilestones, authState]);
 
