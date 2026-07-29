@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { getVoterId } from '../../utils';
 
 type Trait  = 'eyes' | 'nose' | 'hair' | 'smile';
-type Choice = 'mum' | 'dad' | 'mix';
+type Choice = 'aditi' | 'kartik';
 
 const TRAITS: { id: Trait; emoji: string; label: string }[] = [
 	{ id: 'eyes',  emoji: '👀', label: 'Whose eyes?'  },
@@ -13,15 +13,19 @@ const TRAITS: { id: Trait; emoji: string; label: string }[] = [
 ];
 
 const CHOICES: { id: Choice; label: string }[] = [
-	{ id: 'mum', label: 'Mum'         },
-	{ id: 'dad', label: 'Dad'         },
-	{ id: 'mix', label: 'Mix of Both' },
+	{ id: 'aditi',  label: 'Aditi'  },
+	{ id: 'kartik', label: 'Kartik' },
 ];
+
+const CHOICE_COLORS: Record<Choice, string> = {
+	aditi:  '#B39DDB',
+	kartik: '#6CC9C9',
+};
 
 type Counts     = Record<Choice, number>;
 type TraitState = { voted: Choice | null; counts: Counts };
 
-const emptyState = (): TraitState => ({ voted: null, counts: { mum: 0, dad: 0, mix: 0 } });
+const emptyState = (): TraitState => ({ voted: null, counts: { aditi: 0, kartik: 0 } });
 
 const initStates = (): Record<Trait, TraitState> => ({
 	eyes:  emptyState(),
@@ -41,7 +45,7 @@ export const TraitPolls = () => {
 		const next = initStates();
 		for (const trait of TRAITS.map(t => t.id)) {
 			const rows = data.filter(r => r.trait === trait);
-			const counts: Counts = { mum: 0, dad: 0, mix: 0 };
+			const counts: Counts = { aditi: 0, kartik: 0 };
 			for (const row of rows) counts[row.choice as Choice]++;
 			const mine = rows.find(r => r.voter_id === voterId.current);
 			next[trait] = { voted: mine ? (mine.choice as Choice) : null, counts };
@@ -86,7 +90,7 @@ export const TraitPolls = () => {
 			<div className='grid grid-cols-2 gap-3'>
 				{TRAITS.map(({ id, emoji, label }) => {
 					const { voted, counts } = states[id];
-					const total = counts.mum + counts.dad + counts.mix;
+					const total = counts.aditi + counts.kartik;
 
 					return (
 						<div key={id} className='bg-white rounded-3xl shadow-md p-4'>
@@ -100,7 +104,8 @@ export const TraitPolls = () => {
 										<button
 											key={c}
 											onClick={() => vote(id, c)}
-											className='rounded-full border-2 border-slate-200 py-1.5 text-xs font-bold text-slate-600 hover:border-[#FF8C69] hover:text-[#FF8C69] transition-colors'>
+											style={{ borderColor: `${CHOICE_COLORS[c]}80`, color: CHOICE_COLORS[c] }}
+											className='rounded-full border-2 py-1.5 text-xs font-bold transition-colors hover:opacity-80'>
 											{cl}
 										</button>
 									))}
@@ -113,7 +118,7 @@ export const TraitPolls = () => {
 										return (
 											<div key={c}>
 												<div className='flex justify-between text-[10px] font-bold mb-0.5'>
-													<span className={isMe ? 'text-[#FF8C69]' : 'text-slate-400'}>
+													<span style={{ color: isMe ? CHOICE_COLORS[c] : '#94A3B8' }}>
 														{cl}{isMe && ' ✓'}
 													</span>
 													<span className='text-slate-400'>{pct}%</span>
@@ -121,7 +126,7 @@ export const TraitPolls = () => {
 												<div className='h-1.5 rounded-full bg-slate-100 overflow-hidden'>
 													<div
 														className='h-full rounded-full transition-all duration-500'
-														style={{ width: `${pct}%`, backgroundColor: isMe ? '#FF8C69' : '#CBD5E1' }}
+														style={{ width: `${pct}%`, backgroundColor: isMe ? CHOICE_COLORS[c] : '#CBD5E1' }}
 													/>
 												</div>
 											</div>

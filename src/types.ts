@@ -61,7 +61,7 @@ export type TraitVote = {
 	id: string;
 	voter_id: string;
 	trait: 'eyes' | 'nose' | 'hair' | 'smile';
-	choice: 'mum' | 'dad' | 'mix';
+	choice: 'aditi' | 'kartik';
 	created_at: string;
 };
 
