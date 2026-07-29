@@ -21,6 +21,48 @@ const CHOICE_COLORS: Record<FunPollChoice, string> = {
 	kartik: '#6CC9C9',
 };
 
+/** Each poll counts as one point for whoever currently leads it; ties count for neither. */
+const Scoreboard = ({ states }: { states: Record<FunPollId, PollState> }) => {
+	let aditi = 0;
+	let kartik = 0;
+	let started = 0;
+
+	for (const def of FUN_POLLS) {
+		const { counts } = states[def.id];
+		if (counts.aditi === 0 && counts.kartik === 0) continue;
+		started++;
+		if (counts.aditi > counts.kartik) aditi++;
+		else if (counts.kartik > counts.aditi) kartik++;
+	}
+
+	if (started === 0) return null;
+
+	const caption =
+		aditi > kartik  ? 'Aditi is ahead 🎉' :
+		kartik > aditi  ? 'Kartik is ahead 🎉' :
+		'Neck and neck!';
+
+	return (
+		<div className='bg-white rounded-3xl shadow-md p-5 mb-3'>
+			<p className='text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3'>
+				Overall standings
+			</p>
+			<div className='flex items-center justify-center gap-4'>
+				<div className='flex-1 text-center'>
+					<p className='font-poppins font-extrabold text-3xl' style={{ color: CHOICE_COLORS.aditi }}>{aditi}</p>
+					<p className='text-xs font-bold text-slate-500 mt-0.5'>{aditi > kartik && '👑 '}Aditi</p>
+				</div>
+				<span className='font-poppins font-bold text-slate-300 text-sm'>vs</span>
+				<div className='flex-1 text-center'>
+					<p className='font-poppins font-extrabold text-3xl' style={{ color: CHOICE_COLORS.kartik }}>{kartik}</p>
+					<p className='text-xs font-bold text-slate-500 mt-0.5'>{kartik > aditi && '👑 '}Kartik</p>
+				</div>
+			</div>
+			<p className='text-xs text-center text-slate-400 font-semibold mt-3'>{caption}</p>
+		</div>
+	);
+};
+
 export const FunPolls = () => {
 	const voterId = useRef(getVoterId());
 	const [states, setStates] = useState<Record<FunPollId, PollState>>(initStates);
@@ -73,6 +115,7 @@ export const FunPolls = () => {
 	return (
 		<div className='mb-4'>
 			<h2 className='font-poppins font-extrabold text-lg text-[#1A1A2E] mb-3'>Aditi vs Kartik 🥊</h2>
+			<Scoreboard states={states} />
 			<div className='space-y-3'>
 				{FUN_POLLS.map(def => {
 					const { voted, counts } = states[def.id];
