@@ -58,6 +58,7 @@ export const WishesTab = () => {
 
 		const optimistic: Wish = {
 			id: crypto.randomUUID(), author_name: name, message: msg,
+			category: null,
 			created_at: new Date().toISOString(),
 		};
 		setWishes(prev => [optimistic, ...prev]);
