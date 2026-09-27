@@ -38,7 +38,7 @@ export const BlessingNote = ({ wish, pending }: { wish: Wish; pending: boolean }
 				/>
 			)}
 			<p className='whitespace-pre-line break-words pr-5 text-[14px] font-bold leading-snug'>{wish.message}</p>
-			<p className='mt-2.5 font-display text-[14px] font-extrabold'>— {wish.author_name}</p>
+			<p className='mt-2.5 text-[14px] font-extrabold'>— {wish.author_name}</p>
 			<p className='text-[11px] font-bold text-ink/55'>{relativeTime(wish.created_at)}</p>
 			{!pending && <ReactionBar wishId={wish.id} />}
 		</motion.article>

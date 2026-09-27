@@ -43,7 +43,7 @@ export const ScoreSheet = ({ fun }: { fun: Record<FunPollId, SideResult> }) => {
 					<div key={poll.id} className='rounded-2xl border-2 border-ink bg-white p-3.5'>
 						<div className='mb-3 flex items-center gap-2.5'>
 							<Emoji name={poll.emoji} size={30} />
-							<p className='font-display text-[15px] font-extrabold leading-snug'>{poll.question}</p>
+							<p className='font-display text-base font-extrabold leading-snug'>{poll.question}</p>
 						</div>
 						<div className='space-y-2'>
 							<ResultBar label={poll.aditiLabel} count={counts.aditi} total={total} color={BAR.aditi} mine={mine === 'aditi'} />
