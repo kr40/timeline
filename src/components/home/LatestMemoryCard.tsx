@@ -6,8 +6,7 @@ import { timelineIcon } from '../timeline/timelineIcons';
 
 const DAY_MS = 86_400_000;
 
-const whenLabel = (date: string) => {
-	const days = Math.floor((Date.now() - parseDay(date).getTime()) / DAY_MS);
+const whenLabel = (date: string, days: number) => {
 	if (days === 0) return 'Today';
 	if (days === 1) return 'Yesterday';
 	if (days > 1 && days < 30) return `${days} days ago`;
@@ -45,7 +44,7 @@ export const LatestMemoryCard = ({ memory, onOpen }: { memory: Milestone; onOpen
 					{isNew && <span className='rounded-full border-2 border-ink bg-butter px-1.5 py-px text-[10px] tracking-normal text-ink'>New</span>}
 				</p>
 				<p className='mt-0.5 truncate font-display text-base font-extrabold'>{memory.title}</p>
-				<p className='text-xs font-bold text-muted'>{whenLabel(memory.date)}</p>
+				<p className='text-xs font-bold text-muted'>{whenLabel(memory.date, age)}</p>
 			</div>
 			<CaretRight size={18} weight='bold' className='shrink-0' />
 		</Card>
