@@ -221,7 +221,14 @@ const App = () => {
 							exit='exit'
 							transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
 						>
-							{activeTab === 'home' && <HomeTab isUnlocked={isUnlocked} />}
+							{activeTab === 'home' && (
+								<HomeTab
+									isUnlocked={isUnlocked}
+									onImageClick={(images, idx, title) => setExpandedGallery({ images, index: idx, title })}
+									onEditMemory={m => { setEditingMilestone(m); setIsModalOpen(true); }}
+									onOpenTimeline={() => changeTab('timeline')}
+								/>
+							)}
 							{activeTab === 'timeline' && (
 								<TimelineTab
 									milestones={milestones}
