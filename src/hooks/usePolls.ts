@@ -61,7 +61,10 @@ export function usePolls() {
 		setState(next);
 	}, [voterId]);
 
-	useEffect(() => () => { mounted.current = false; }, []);
+	useEffect(() => {
+		mounted.current = true;
+		return () => { mounted.current = false; };
+	}, []);
 
 	useEffect(() => {
 		void load();
