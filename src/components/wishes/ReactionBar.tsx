@@ -87,7 +87,7 @@ export const ReactionBar = ({ wishId }: { wishId: string }) => {
 						whileTap={{ scale: 0.85 }}
 						aria-pressed={active}
 						aria-label={`React with ${emoji}${count > 0 ? ` (${count})` : ''}`}
-						className={`flex items-center gap-0.5 rounded-full border-[1.5px] px-1.5 py-0.5 transition-colors ${
+						className={`flex min-h-8 items-center gap-0.5 rounded-full border-[1.5px] px-2 py-0.5 transition-colors ${
 							active ? 'border-ink bg-white shadow-sticker-xs' : 'border-ink/20 bg-white/60'
 						}`}
 					>

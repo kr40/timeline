@@ -12,6 +12,7 @@ import { SealStamp } from './babybook/SealStamp';
 import { Button } from './ui/Button';
 import { Card, type Tone } from './ui/Card';
 import { Emoji } from './ui/Emoji';
+import { ErrorNote } from './ui/ErrorNote';
 import { Reveal } from './ui/Reveal';
 import { Sheet } from './ui/Sheet';
 import { Spinner } from './ui/Spinner';
@@ -109,7 +110,7 @@ const CapsuleView = ({ capsule }: { capsule: BirthCapsule }) => {
 					)}
 					{(zodiac || birthstone) && (
 						<div className='mt-3 flex flex-wrap gap-2'>
-							{zodiac && <Chip>{zodiac.emoji} {zodiac.name}</Chip>}
+							{zodiac && <Chip><span aria-hidden>{zodiac.emoji}{'\uFE0E'}</span> {zodiac.name}</Chip>}
 							{birthstone && <Chip><Emoji name='gem-stone' size={14} />{birthstone.name}</Chip>}
 						</div>
 					)}
@@ -150,18 +151,24 @@ const CapsuleView = ({ capsule }: { capsule: BirthCapsule }) => {
 export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 	const [capsule, setCapsule] = useState<BirthCapsule | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [filling, setFilling] = useState(false);
 	const [sealed, setSealed] = useState(false);
 
 	useEffect(() => {
 		(async () => {
 			try {
-				const { data } = await supabase
+				const { data, error } = await supabase
 					.from('birth_capsule')
 					.select('*')
 					.order('created_at', { ascending: true })
 					.limit(1)
 					.maybeSingle();
+				if (error) {
+					console.error(error);
+					setLoadError(true);
+					return;
+				}
 				setCapsule(data ?? null);
 			} finally {
 				setIsLoading(false);
@@ -179,6 +186,14 @@ export const BabyBookTab = ({ isUnlocked }: { isUnlocked: boolean }) => {
 	};
 
 	if (isLoading) return <Spinner label='Loading the baby book' />;
+
+	if (loadError) {
+		return (
+			<div className='pb-4'>
+				<ErrorNote>Couldn't load the baby book. Check your connection and refresh.</ErrorNote>
+			</div>
+		);
+	}
 
 	return (
 		<div className='pb-4'>

@@ -2,6 +2,7 @@ import { CameraPlus, Trash, X } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { uploadToImageKit } from '../../imagekit';
+import { ikResize } from '../../lib/imagekit';
 import { Milestone, NewEvent, getImages } from '../../types';
 import { ICON_OPTIONS, errorMessage } from '../../utils';
 import { MAX_IMAGES } from '../../constants';
@@ -192,7 +193,12 @@ export const MemoryForm = ({ editingMilestone, onSave, onDelete }: Props) => {
 					<div className='mb-3 grid grid-cols-3 gap-2.5'>
 						{existingImages.map((url, i) => (
 							<div key={`existing-${i}`} className='relative aspect-square overflow-hidden rounded-xl border-2 border-ink bg-white'>
-								<img src={url} alt={`Photo ${i + 1}`} className='h-full w-full object-cover' />
+								<img
+									src={ikResize(url, 240)}
+									alt={`Photo ${i + 1}`}
+									onError={e => { if (e.currentTarget.src !== url) e.currentTarget.src = url; }}
+									className='h-full w-full object-cover'
+								/>
 								<button type='button' aria-label={`Remove photo ${i + 1}`} disabled={isSaving} onClick={() => handleRemoveExisting(i)} className={REMOVE}>
 									<X size={12} weight='bold' />
 								</button>

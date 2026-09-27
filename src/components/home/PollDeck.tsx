@@ -242,7 +242,7 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 							aria-label={`Question ${i + 1}`}
 							aria-current={i === index}
 							onClick={() => go(i, i > index ? 1 : -1)}
-							className='grid h-6 place-items-center'
+							className='-m-1 grid place-items-center p-2'
 						>
 							<motion.span
 								className={`block h-2 rounded-full ${i === index ? 'bg-ink' : mineFor(state, p) ? 'bg-ink/35' : 'bg-ink/15'}`}

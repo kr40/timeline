@@ -2,13 +2,17 @@ import { CaretRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { getCurrentWeek } from '../../config';
+import { getFruitForWeek } from '../../data/fruitData';
 import { getFactsForWeek } from '../../data/weeklyFacts';
 import { Card } from '../ui/Card';
 import { Emoji } from '../ui/Emoji';
 
-/** One of this week's three facts; tap to cycle. */
+/** This week's fruit-of-the-week fact, then its three facts; tap to cycle. */
 export const FactTicker = () => {
-	const { facts } = getFactsForWeek(getCurrentWeek());
+	const week = getCurrentWeek();
+	const fruit = getFruitForWeek(week);
+	const { facts: weekFacts } = getFactsForWeek(week);
+	const facts = fruit.fact ? [fruit.fact, ...weekFacts] : weekFacts;
 	const [index, setIndex] = useState(0);
 
 	return (

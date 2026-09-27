@@ -88,7 +88,8 @@ export const Sheet = ({ open, onClose, title, children }: Props) => {
 					holdingLock.current = false;
 				}
 				const el = previouslyFocused.current;
-				if (el && el.isConnected) el.focus();
+				const otherModalOpen = [...document.querySelectorAll('[aria-modal="true"]')].some(d => d !== dialogRef.current);
+				if (el?.isConnected && !otherModalOpen) el.focus({ preventScroll: true });
 				previouslyFocused.current = null;
 			}}
 		>

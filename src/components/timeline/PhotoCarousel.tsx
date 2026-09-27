@@ -1,6 +1,7 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
+import { ikResize } from '../../lib/imagekit';
 
 type Props = { images: string[]; title: string; onOpen: (index: number) => void };
 
@@ -24,7 +25,7 @@ export const PhotoCarousel = ({ images, title, onOpen }: Props) => {
 				<AnimatePresence initial={false} custom={dir}>
 					<motion.img
 						key={index}
-						src={images[index]}
+						src={ikResize(images[index], 1200)}
 						alt={`${title} — photo ${index + 1} of ${images.length}`}
 						custom={dir}
 						variants={slide}
@@ -40,6 +41,7 @@ export const PhotoCarousel = ({ images, title, onOpen }: Props) => {
 							else if (info.offset.x > 60) go(-1);
 						}}
 						onTap={() => onOpen(index)}
+						onError={e => { if (e.currentTarget.src !== images[index]) e.currentTarget.src = images[index]; }}
 						draggable={false}
 						className='absolute inset-0 h-full w-full cursor-zoom-in select-none object-cover'
 					/>

@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import type { EmojiName } from '../emoji';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Emoji } from './ui/Emoji';
 
 const ITEMS: { name: EmojiName; className: string; size: number; delay: number }[] = [
@@ -11,18 +12,24 @@ const ITEMS: { name: EmojiName; className: string; size: number; delay: number }
 	{ name: 'baby-bottle',   className: 'right-[7%] top-[58%]',             size: 78, delay: 1.8 },
 ];
 
-/** Decorative floating pictures in the side gutters of wide screens (≥1280px only). */
-export const Doodles = () => (
-	<div aria-hidden className='pointer-events-none fixed inset-0 z-0 hidden xl:block'>
-		{ITEMS.map(item => (
-			<motion.div
-				key={item.name}
-				className={`absolute ${item.className}`}
-				animate={{ y: [0, -14, 0], rotate: [-5, 5, -5] }}
-				transition={{ duration: 7 + item.delay, delay: item.delay, repeat: Infinity, ease: 'easeInOut' }}
-			>
-				<Emoji name={item.name} size={item.size} />
-			</motion.div>
-		))}
-	</div>
-);
+/** Decorative floating pictures in the side gutters of wide screens (≥1280px only).
+ *  Not just CSS-hidden below that: unmounted entirely so they don't keep animating off-screen on phones. */
+export const Doodles = () => {
+	const wide = useMediaQuery('(min-width: 1280px)');
+	if (!wide) return null;
+
+	return (
+		<div aria-hidden className='pointer-events-none fixed inset-0 z-0'>
+			{ITEMS.map(item => (
+				<motion.div
+					key={item.name}
+					className={`absolute ${item.className}`}
+					animate={{ y: [0, -14, 0], rotate: [-5, 5, -5] }}
+					transition={{ duration: 7 + item.delay, delay: item.delay, repeat: Infinity, ease: 'easeInOut' }}
+				>
+					<Emoji name={item.name} size={item.size} />
+				</motion.div>
+			))}
+		</div>
+	);
+};

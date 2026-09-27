@@ -37,6 +37,9 @@ export function usePolls() {
 			supabase.from('trait_votes').select('trait, choice, voter_id'),
 			supabase.from('fun_poll_votes').select('poll, choice, voter_id'),
 		]);
+		if (genderRes.error) console.error(genderRes.error);
+		if (traitRes.error) console.error(traitRes.error);
+		if (funRes.error) console.error(funRes.error);
 		const next = initialState();
 		next.loading = false;
 		for (const row of genderRes.data ?? []) {
@@ -74,7 +77,7 @@ export function usePolls() {
 			timer = setTimeout(() => { void load(); }, 250);
 		};
 		const channel = supabase
-			.channel('polls-realtime')
+			.channel(`polls-realtime-${Math.random().toString(36).slice(2)}`)
 			.on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, refresh)
 			.on('postgres_changes', { event: '*', schema: 'public', table: 'trait_votes' }, refresh)
 			.on('postgres_changes', { event: '*', schema: 'public', table: 'fun_poll_votes' }, refresh)

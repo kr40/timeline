@@ -26,12 +26,17 @@ export const ExpandedImageModal = ({ images, initialIndex, onClose, title }: Pro
 
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') { if (scale > 1) setScale(1); else onClose(); }
+			if (e.key === 'Escape') {
+				// Capture phase, ahead of Sheet's document-level listener, so Escape closes
+				// only this viewer — not the sheet beneath it too.
+				e.stopPropagation();
+				if (scale > 1) setScale(1); else onClose();
+			}
 			if (e.key === 'ArrowLeft'  && isMulti && scale <= 1) setIndex(i => (i - 1 + images.length) % images.length);
 			if (e.key === 'ArrowRight' && isMulti && scale <= 1) setIndex(i => (i + 1) % images.length);
 		};
-		window.addEventListener('keydown', handler);
-		return () => window.removeEventListener('keydown', handler);
+		window.addEventListener('keydown', handler, true);
+		return () => window.removeEventListener('keydown', handler, true);
 	}, [onClose, isMulti, images.length, scale]);
 
 	if (!images.length) return null;

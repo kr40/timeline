@@ -1,5 +1,6 @@
 import { PencilSimple } from '@phosphor-icons/react';
 import { memo, useState } from 'react';
+import { ikResize } from '../../lib/imagekit';
 import { Milestone, getImages } from '../../types';
 import { formatDay } from '../../utils';
 import { Card } from '../ui/Card';
@@ -41,12 +42,13 @@ export const MemoryCard = memo(({ milestone, index, isUnlocked, onOpen, onEdit }
 						<div className='relative aspect-square overflow-hidden rounded-[2px] bg-dot/50'>
 							{!loaded && <div className='absolute inset-0 animate-pulse bg-dot/70' />}
 							<img
-								src={images[0]}
+								src={ikResize(images[0], 300)}
 								alt=''
 								loading='lazy'
 								decoding='async'
 								draggable={false}
 								onLoad={() => setLoaded(true)}
+								onError={e => { if (e.currentTarget.src !== images[0]) e.currentTarget.src = images[0]; }}
 								className={`h-full w-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
 							/>
 						</div>

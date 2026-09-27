@@ -20,15 +20,16 @@ import { Sheet } from './ui/Sheet';
 
 type Props = {
 	isUnlocked: boolean;
+	memoryRev: number;
 	onImageClick: (images: string[], index: number, title: string) => void;
 	onEditMemory: (m: Milestone) => void;
 	onOpenTimeline: () => void;
 };
 
-export const HomeTab = ({ isUnlocked, onImageClick, onEditMemory, onOpenTimeline }: Props) => {
+export const HomeTab = ({ isUnlocked, memoryRev, onImageClick, onEditMemory, onOpenTimeline }: Props) => {
 	const polls = usePolls();
 	const guesses = useGuesses();
-	const latest = useLatestMemory();
+	const latest = useLatestMemory(memoryRev);
 	const [sheet, setSheet] = useState<'guess' | 'score' | 'memory' | null>(null);
 	const closeSheet = useCallback(() => setSheet(null), []);
 

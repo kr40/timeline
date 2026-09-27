@@ -31,8 +31,8 @@ export const BirthCapsuleForm = ({ onSaved }: Props) => {
 			const payload = {
 				birth_date:       form.birth_date     || null,
 				birth_time:       form.birth_time     || null,
-				weight_kg:        form.weight_kg      ? parseFloat(form.weight_kg) : null,
-				length_cm:        form.length_cm      ? parseFloat(form.length_cm) : null,
+				weight_kg:        form.weight_kg      ? parseFloat(form.weight_kg.replace(',', '.')) : null,
+				length_cm:        form.length_cm      ? parseFloat(form.length_cm.replace(',', '.')) : null,
 				location:         form.location       || null,
 				baby_name:        form.baby_name      || null,
 				name_meaning:     form.name_meaning   || null,

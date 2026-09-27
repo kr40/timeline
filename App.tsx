@@ -39,6 +39,7 @@ const App = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [showUnlock, setShowUnlock]   = useState(false);
 	const [expandedGallery, setExpandedGallery] = useState<{ images: string[]; index: number; title: string } | null>(null);
+	const [memoryRev, setMemoryRev] = useState(0);
 
 	const [editingMilestoneState, setEditingMilestoneState] = useState<Milestone | null>(null);
 	const editingMilestoneRef = useRef<Milestone | null>(null);
@@ -108,6 +109,7 @@ const App = () => {
 
 	useEffect(() => {
 		if (authState === null) return;
+		setPage(0);
 		fetchMilestones(0, true);
 	}, [fetchMilestones, authState]);
 
@@ -123,6 +125,7 @@ const App = () => {
 		if (editing) {
 			const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editing.id);
 			if (error) throw error;
+			setMemoryRev(r => r + 1);
 			if (!hasMore) {
 				setMilestones(prev =>
 					prev
@@ -135,6 +138,7 @@ const App = () => {
 		} else {
 			const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
 			if (error) throw error;
+			setMemoryRev(r => r + 1);
 			celebrate();
 			if (data) {
 				if (!hasMore) {
@@ -154,6 +158,7 @@ const App = () => {
 	const handleDeleteMilestone = useCallback(async (id: number) => {
 		const { error } = await supabase.from('milestones').delete().eq('id', id);
 		if (error) throw error;
+		setMemoryRev(r => r + 1);
 		setMilestones(prev => prev.filter(m => m.id !== id));
 		setIsModalOpen(false);
 	}, []);
@@ -224,6 +229,7 @@ const App = () => {
 							{activeTab === 'home' && (
 								<HomeTab
 									isUnlocked={isUnlocked}
+									memoryRev={memoryRev}
 									onImageClick={(images, idx, title) => setExpandedGallery({ images, index: idx, title })}
 									onEditMemory={m => { setEditingMilestone(m); setIsModalOpen(true); }}
 									onOpenTimeline={() => changeTab('timeline')}
