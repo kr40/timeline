@@ -1,33 +1,51 @@
-import { BookOpen, HandHeart, Home, Library, PartyPopper } from 'lucide-react';
+import { BookOpenText, Books, HandHeart, House, type Icon } from '@phosphor-icons/react';
+import { motion } from 'motion/react';
 
-export type TabId = 'home' | 'timeline' | 'wishes' | 'shower' | 'babybook';
+export type TabId = 'home' | 'timeline' | 'wishes' | 'babybook';
 
-type Tab = { id: TabId; label: string; Icon: React.FC<{ className?: string }> };
-
-const TABS: Tab[] = [
-	{ id: 'home',     label: 'Home',      Icon: Home },
-	{ id: 'timeline', label: 'Timeline',  Icon: BookOpen },
+export const TABS: { id: TabId; label: string; Icon: Icon }[] = [
+	{ id: 'home',     label: 'Home',      Icon: House },
+	{ id: 'timeline', label: 'Timeline',  Icon: BookOpenText },
 	{ id: 'wishes',   label: 'Blessings', Icon: HandHeart },
-	{ id: 'shower',   label: 'Shower',    Icon: PartyPopper },
-	{ id: 'babybook', label: 'Baby Book', Icon: Library },
+	{ id: 'babybook', label: 'Baby Book', Icon: Books },
 ];
 
-type Props = { activeTab: TabId; onTabChange: (tab: TabId) => void; visibleTabs: TabId[] };
+type Props = { activeTab: TabId; onTabChange: (tab: TabId) => void };
 
-export const TabBar = ({ activeTab, onTabChange, visibleTabs }: Props) => (
-	<nav className='fixed bottom-0 inset-x-0 bg-white border-t border-slate-100 z-30'>
-		<div className='max-w-[600px] mx-auto flex justify-around items-center py-2'>
-			{TABS.filter(t => visibleTabs.includes(t.id)).map(({ id, label, Icon }) => {
+/** Floating sticker tab bar; the butter pill slides between tabs. */
+export const TabBar = ({ activeTab, onTabChange }: Props) => (
+	<nav
+		aria-label='Sections'
+		className='pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+	>
+		<div className='pointer-events-auto mx-auto flex max-w-[460px] gap-1 rounded-[26px] border-2 border-ink bg-white p-1.5 shadow-sticker'>
+			{TABS.map(({ id, label, Icon }) => {
 				const active = activeTab === id;
 				return (
 					<button
 						key={id}
+						type='button'
 						onClick={() => onTabChange(id)}
-						className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-2xl transition-colors ${
-							active ? 'text-[#FF8C69]' : 'text-slate-400'
-						}`}>
-						<Icon className={`w-6 h-6 transition-transform duration-200 ${active ? 'scale-110' : ''}`} />
-						<span className='text-[10px] font-bold tracking-wide'>{label}</span>
+						aria-current={active ? 'page' : undefined}
+						className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-[18px] px-1 py-1.5 text-[11px] font-extrabold transition-colors ${
+							active ? 'text-ink' : 'text-muted hover:text-ink'
+						}`}
+					>
+						{active && (
+							<motion.span
+								layoutId='tab-pill'
+								className='absolute inset-0 rounded-[18px] border-2 border-ink bg-butter'
+								transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+							/>
+						)}
+						<motion.span
+							className='relative'
+							animate={active ? { y: [0, -5, 0], scale: [1, 1.18, 1] } : { y: 0, scale: 1 }}
+							transition={{ duration: 0.42 }}
+						>
+							<Icon size={24} weight={active ? 'duotone' : 'regular'} />
+						</motion.span>
+						<span className='relative'>{label}</span>
 					</button>
 				);
 			})}

@@ -89,11 +89,3 @@ export type FunPollVote = {
 	choice: 'aditi' | 'kartik';
 	created_at: string;
 };
-
-export type ShowerPost = {
-	id: string;
-	author_name: string;
-	message: string;
-	image_url: string | null;
-	created_at: string;
-};
