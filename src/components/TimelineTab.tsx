@@ -1,6 +1,16 @@
-import { Plus } from 'lucide-react';
+import { CalendarBlank, Plus } from '@phosphor-icons/react';
+import { useCallback, useMemo, useState } from 'react';
 import { Milestone } from '../types';
-import { TimelineItem } from './TimelineItem';
+import { parseDay } from '../utils';
+import { MemoryCard } from './timeline/MemoryCard';
+import { MemoryView } from './timeline/MemoryView';
+import { Button } from './ui/Button';
+import { Emoji } from './ui/Emoji';
+import { EmptyState } from './ui/EmptyState';
+import { ErrorNote } from './ui/ErrorNote';
+import { Fab } from './ui/Fab';
+import { Sheet } from './ui/Sheet';
+import { Spinner } from './ui/Spinner';
 
 type Props = {
 	milestones:   Milestone[];
@@ -17,54 +27,94 @@ type Props = {
 export const TimelineTab = ({
 	milestones, isLoading, error, hasMore, isUnlocked,
 	onLoadMore, onImageClick, onEditClick, onAddClick,
-}: Props) => (
-	<div className='relative pb-4'>
-		<div className='absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#FF8C69]/40 via-[#6CC9C9]/40 to-[#B39DDB]/40' />
+}: Props) => {
+	const [viewing, setViewing] = useState<Milestone | null>(null);
+	const [viewOpen, setViewOpen] = useState(false);
+	const closeView = useCallback(() => setViewOpen(false), []);
+	const openView = useCallback((m: Milestone) => { setViewing(m); setViewOpen(true); }, []);
 
-		{isLoading && (
-			<div className='flex justify-center py-16'>
-				<div className='w-8 h-8 border-2 border-[#FF8C69] border-t-transparent rounded-full animate-spin' />
-			</div>
-		)}
-		{error && (
-			<div className='rounded-3xl bg-red-50 border border-red-200 p-4 text-sm text-red-500 font-semibold text-center mt-4'>
-				{error}
-			</div>
-		)}
-		{!isLoading && !error && milestones.length === 0 && (
-			<div className='rounded-3xl bg-white border border-slate-100 shadow-md p-8 text-center mt-4'>
-				<div className='text-4xl mb-3'>📖</div>
-				<p className='font-poppins font-bold text-[#1A1A2E]'>No memories yet</p>
-				{isUnlocked && <p className='text-xs text-[#6B7280] font-semibold mt-1'>Tap + to add the first memory!</p>}
-			</div>
-		)}
+	const groups = useMemo(() => {
+		const out: { key: string; label: string; items: { milestone: Milestone; index: number }[] }[] = [];
+		milestones.forEach((milestone, index) => {
+			const d = parseDay(milestone.date);
+			const key = `${d.getFullYear()}-${d.getMonth()}`;
+			const last = out[out.length - 1];
+			if (last && last.key === key) last.items.push({ milestone, index });
+			else out.push({ key, label: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }), items: [{ milestone, index }] });
+		});
+		return out;
+	}, [milestones]);
 
-		{milestones.map((milestone, index) => (
-			<TimelineItem
-				key={milestone.id}
-				milestone={milestone}
-				index={index}
-				onImageClick={(images, idx) => onImageClick(images, idx, milestone.title)}
-				onEditClick={onEditClick}
-				isUnlocked={isUnlocked}
-			/>
-		))}
-
-		{hasMore && !isLoading && (
-			<div className='flex justify-center mt-4'>
-				<button onClick={onLoadMore}
-					className='px-6 py-2.5 font-bold text-[#FF8C69] bg-orange-50 border-2 border-[#FF8C69]/20 rounded-full hover:bg-orange-100 transition-colors text-sm'>
-					Load more memories
-				</button>
+	return (
+		<div className='pb-4'>
+			<div className='mb-2 px-1'>
+				<h2 className='flex items-center gap-2 font-display text-display-lg font-extrabold'>
+					Our story <Emoji name='open-book' size={30} eager />
+				</h2>
+				{milestones.length > 0 && (
+					<p className='text-sm font-semibold text-muted'>
+						{milestones.length === 1 ? '1 memory' : `${milestones.length} memories`} so far
+					</p>
+				)}
 			</div>
-		)}
 
-		{isUnlocked && (
-			<button onClick={onAddClick}
-				className='fixed z-40 bottom-20 right-4 w-14 h-14 bg-[#FF8C69] text-white rounded-full shadow-lg shadow-[#FF8C69]/40 hover:bg-[#e87a57] active:scale-95 transition-all flex items-center justify-center'>
-				<Plus className='w-7 h-7' strokeWidth={2.5} />
-				<span className='sr-only'>Add Memory</span>
-			</button>
-		)}
-	</div>
-);
+			{isLoading && milestones.length === 0 && <Spinner label='Loading memories' />}
+			{error && <ErrorNote>{error}</ErrorNote>}
+			{!isLoading && !error && milestones.length === 0 && (
+				<EmptyState
+					emoji='open-book'
+					title='No memories yet'
+					body={isUnlocked ? 'Tap “Memory” to add the first one.' : 'Check back soon for the first chapter.'}
+				/>
+			)}
+
+			{groups.map(group => (
+				<section key={group.key} aria-label={group.label}>
+					<div className='sticky top-[62px] z-20 py-2'>
+						<span className='inline-flex items-center gap-1.5 rounded-full border-2 border-ink bg-butter px-3 py-1 text-xs font-extrabold shadow-sticker-sm'>
+							<CalendarBlank size={14} weight='bold' />
+							{group.label}
+						</span>
+					</div>
+					<div className='relative pl-[46px]'>
+						<div aria-hidden className='absolute bottom-3 left-[16px] top-1 border-l-[2.5px] border-dashed border-ink/25' />
+						{group.items.map(({ milestone, index }) => (
+							<MemoryCard
+								key={milestone.id}
+								milestone={milestone}
+								index={index}
+								isUnlocked={isUnlocked}
+								onOpen={openView}
+								onEdit={onEditClick}
+							/>
+						))}
+					</div>
+				</section>
+			))}
+
+			{hasMore && !isLoading && (
+				<div className='mt-2 flex justify-center'>
+					<Button tone='white' onClick={onLoadMore}>Load more memories</Button>
+				</div>
+			)}
+
+			{isUnlocked && (
+				<Fab label='Add a memory' onClick={onAddClick}>
+					<Plus size={18} weight='bold' />
+					Memory
+				</Fab>
+			)}
+
+			<Sheet open={viewOpen} onClose={closeView} title={viewing?.title ?? ''}>
+				{viewing && (
+					<MemoryView
+						milestone={viewing}
+						isUnlocked={isUnlocked}
+						onImageClick={(images, idx) => onImageClick(images, idx, viewing.title)}
+						onEdit={() => { setViewOpen(false); onEditClick(viewing); }}
+					/>
+				)}
+			</Sheet>
+		</div>
+	);
+};

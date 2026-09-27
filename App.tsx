@@ -6,7 +6,7 @@ import { BabyBookTab } from './src/components/BabyBookTab';
 import { Doodles } from './src/components/Doodles';
 import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { HomeTab } from './src/components/HomeTab';
-import { MemoryModal } from './src/components/MemoryModal';
+import { MemoryForm } from './src/components/timeline/MemoryForm';
 import { TABS, TabBar, type TabId } from './src/components/TabBar';
 import { TimelineTab } from './src/components/TimelineTab';
 import { WishesTab } from './src/components/WishesTab';
@@ -80,6 +80,7 @@ const App = () => {
 		setAuthState(null);
 	};
 	const closeUnlock = useCallback(() => setShowUnlock(false), []);
+	const closeMemoryForm = useCallback(() => setIsModalOpen(false), []);
 
 	const fetchMilestones = useCallback(async (pageNum: number, replace: boolean) => {
 		try {
@@ -134,6 +135,7 @@ const App = () => {
 		} else {
 			const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
 			if (error) throw error;
+			celebrate();
 			if (data) {
 				if (!hasMore) {
 					setMilestones(prev =>
@@ -147,7 +149,6 @@ const App = () => {
 			}
 		}
 		setIsModalOpen(false);
-		setEditingMilestone(null);
 	}, [hasMore, fetchMilestones]);
 
 	const handleDeleteMilestone = useCallback(async (id: number) => {
@@ -155,7 +156,6 @@ const App = () => {
 		if (error) throw error;
 		setMilestones(prev => prev.filter(m => m.id !== id));
 		setIsModalOpen(false);
-		setEditingMilestone(null);
 	}, []);
 
 	const daysLeft = getDaysUntilEDD();
@@ -243,14 +243,13 @@ const App = () => {
 
 				<TabBar activeTab={activeTab} onTabChange={changeTab} />
 
-				{isModalOpen && (
-					<MemoryModal
+				<Sheet open={isModalOpen} onClose={closeMemoryForm} title={editingMilestoneState ? 'Edit memory' : 'New memory'}>
+					<MemoryForm
 						editingMilestone={editingMilestoneState}
-						onClose={() => setIsModalOpen(false)}
 						onSave={handleSaveMilestone}
 						onDelete={handleDeleteMilestone}
 					/>
-				)}
+				</Sheet>
 				{expandedGallery && (
 					<ExpandedImageModal
 						images={expandedGallery.images}

@@ -12,14 +12,6 @@ export const ICON_OPTIONS: IconType[] = [
 	'footprints',
 ];
 
-const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
-	year: 'numeric',
-	month: 'long',
-	day: 'numeric',
-});
-
-export const formatDate = (dateString: string) => DATE_FORMATTER.format(new Date(dateString));
-
 export function getVoterId(): string {
 	const CACHE_KEY = 'timeline_fp';
 	try {
