@@ -234,7 +234,7 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 				>
 					<CaretLeft size={16} weight='bold' />
 				</button>
-				<div className='flex items-center gap-1.5'>
+				<div className='flex items-center'>
 					{POLL_ITEMS.map((p, i) => (
 						<button
 							key={p.id}

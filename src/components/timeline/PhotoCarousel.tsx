@@ -1,7 +1,7 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
-import { ikResize } from '../../lib/imagekit';
+import { fallbackTo, ikResize } from '../../lib/imagekit';
 
 type Props = { images: string[]; title: string; onOpen: (index: number) => void };
 
@@ -41,7 +41,7 @@ export const PhotoCarousel = ({ images, title, onOpen }: Props) => {
 							else if (info.offset.x > 60) go(-1);
 						}}
 						onTap={() => onOpen(index)}
-						onError={e => { if (e.currentTarget.src !== images[index]) e.currentTarget.src = images[index]; }}
+						onError={fallbackTo(images[index])}
 						draggable={false}
 						className='absolute inset-0 h-full w-full cursor-zoom-in select-none object-cover'
 					/>

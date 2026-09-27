@@ -1,6 +1,6 @@
 import { PencilSimple } from '@phosphor-icons/react';
 import { memo, useState } from 'react';
-import { ikResize } from '../../lib/imagekit';
+import { fallbackTo, ikResize } from '../../lib/imagekit';
 import { Milestone, getImages } from '../../types';
 import { formatDay } from '../../utils';
 import { Card } from '../ui/Card';
@@ -48,7 +48,7 @@ export const MemoryCard = memo(({ milestone, index, isUnlocked, onOpen, onEdit }
 								decoding='async'
 								draggable={false}
 								onLoad={() => setLoaded(true)}
-								onError={e => { if (e.currentTarget.src !== images[0]) e.currentTarget.src = images[0]; }}
+								onError={fallbackTo(images[0])}
 								className={`h-full w-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
 							/>
 						</div>

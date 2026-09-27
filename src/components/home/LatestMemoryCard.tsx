@@ -1,5 +1,5 @@
 import { CaretRight } from '@phosphor-icons/react';
-import { ikResize } from '../../lib/imagekit';
+import { fallbackTo, ikResize } from '../../lib/imagekit';
 import { Milestone, getImages } from '../../types';
 import { formatDay, parseDay } from '../../utils';
 import { Card } from '../ui/Card';
@@ -31,7 +31,7 @@ export const LatestMemoryCard = ({ memory, onOpen }: { memory: Milestone; onOpen
 						loading='lazy'
 						decoding='async'
 						draggable={false}
-						onError={e => { if (e.currentTarget.src !== images[0]) e.currentTarget.src = images[0]; }}
+						onError={fallbackTo(images[0])}
 						className='aspect-square w-full rounded-[2px] object-cover'
 					/>
 				</div>
