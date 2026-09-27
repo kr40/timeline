@@ -1,79 +1,43 @@
-html, body { font-family: 'Nunito', sans-serif; }
-body { background-color: #FAFAFA; }
-
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@keyframes float {
-	0% {
-		transform: translateY(0px) rotate(0deg);
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+		-webkit-tap-highlight-color: transparent;
 	}
-	50% {
-		transform: translateY(-15px) rotate(8deg);
+	body {
+		@apply m-0 min-h-screen min-w-[320px] bg-paper font-body text-ink antialiased;
+		background-image: radial-gradient(theme('colors.dot') 1.3px, transparent 1.3px);
+		background-size: 18px 18px;
+		text-rendering: optimizeLegibility;
 	}
-	100% {
-		transform: translateY(0px) rotate(0deg);
+	#root {
+		@apply w-full;
+	}
+	::selection {
+		@apply bg-butter text-ink;
+	}
+	:focus-visible {
+		@apply outline outline-[3px] outline-offset-2 outline-ink;
+	}
+	h1, h2, h3 {
+		text-wrap: balance;
 	}
 }
 
-@keyframes fadeInUp {
-	from {
-		opacity: 0;
-		transform: translateY(40px);
+@layer components {
+	.field {
+		@apply w-full rounded-2xl border-2 border-ink bg-white px-4 py-3 text-base font-semibold text-ink outline-none transition-[background-color,box-shadow] duration-150 placeholder:font-semibold placeholder:text-muted/70 focus:bg-[#FFFCEB] focus:shadow-sticker-sm focus-visible:outline-none;
 	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
+	.field-label {
+		@apply mb-1.5 block pl-1 text-xs font-extrabold uppercase tracking-[0.08em] text-muted;
 	}
-}
-
-.animate-float {
-	animation: float 4s ease-in-out infinite;
-	will-change: transform;
-}
-
-.animate-float-delayed {
-	animation: float 5s ease-in-out infinite 2s;
-	will-change: transform;
-}
-
-.animate-fade-in-up {
-	animation: fadeInUp 0.8s ease-out forwards;
-	opacity: 0;
-}
-
-@keyframes carouselFade {
-	from { opacity: 0; }
-	to   { opacity: 1; }
-}
-
-.carousel-img-enter {
-	animation: carouselFade 0.2s ease-out;
-}
-
-@keyframes shake {
-	0%, 100% { transform: translateX(0); }
-	15%       { transform: translateX(-6px); }
-	30%       { transform: translateX(6px); }
-	45%       { transform: translateX(-4px); }
-	60%       { transform: translateX(4px); }
-	75%       { transform: translateX(-2px); }
-	90%       { transform: translateX(2px); }
-}
-
-.animate-shake {
-	animation: shake 0.55s ease-in-out;
-}
-
-body {
-	margin: 0;
-	min-width: 320px;
-	min-height: 100vh;
-}
-
-#root {
-	width: 100%;
+	.press {
+		@apply transition-[transform,box-shadow] duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-sticker-xs;
+	}
+	.eyebrow {
+		@apply text-[11px] font-extrabold uppercase tracking-[0.12em];
+	}
 }
