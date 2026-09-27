@@ -44,6 +44,7 @@
 | `src/components/{TimelineItem,MemoryModal}.tsx`, `src/icons.tsx`, `src/hooks/useSwipe.ts` | delete | 5 |
 | `src/components/WishesTab.tsx`, `src/components/wishes/{BlessingNote,ComposeBlessing,ReactionBar}.tsx` | rewrite/create | 6 |
 | `src/components/BabyBookTab.tsx`, `src/components/babybook/{BirthCapsuleForm,SealStamp}.tsx` | rewrite/create | 7 |
+| `src/hooks/useLatestMemory.ts`, `src/components/home/LatestMemoryCard.tsx`, `src/components/home/HeroCard.tsx`, `src/components/HomeTab.tsx`, `App.tsx` | create/modify | 8 |
 | `src/components/BirthCapsuleModal.tsx`, `lucide-react` | delete/uninstall | 7 |
 
 ---
@@ -4395,7 +4396,283 @@ git commit -m "feat: storybook baby book — illustrated placeholder, capsule sh
 
 ---
 
-### Task 8: Visual QA and whole-branch review (controller)
+### Task 8: Home extras — "on time" chips and latest memory
+
+**Files:**
+- Modify: `src/components/home/HeroCard.tsx`, `src/components/HomeTab.tsx`, `App.tsx`
+- Create: `src/hooks/useLatestMemory.ts`, `src/components/home/LatestMemoryCard.tsx`
+
+**Interfaces:**
+- Consumes: `getZodiacSign`, `getBirthstone` from `src/data/zodiacData.ts`; `MemoryView` from `src/components/timeline/MemoryView.tsx` and `timelineIcon` from `timelineIcons.tsx` (Task 5); `parseDay`, `formatDay` from `src/utils.ts`.
+- `HomeTab` props become `{ isUnlocked; onImageClick(images, index, title); onEditMemory(m); onOpenTimeline() }`.
+- `useLatestMemory()` → `Milestone | null` — a **read-only** query: `milestones` ordered by `id desc`, `limit 1`, `maybeSingle()`.
+
+- [ ] **Step 1: Add the "right on time" chips to `src/components/home/HeroCard.tsx`**
+
+1. Add the import:
+   ```tsx
+   import { getBirthstone, getZodiacSign } from '../../data/zodiacData';
+   ```
+2. Add this constant below `formatWeight`:
+   ```tsx
+   const CHIP = 'inline-flex items-center gap-1 rounded-full border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-extrabold';
+   ```
+3. In the not-yet-arrived branch, after the `const due = …` line add:
+   ```tsx
+   const zodiac = getZodiacSign(EDD);
+   const stone = getBirthstone(EDD);
+   const weekday = new Date(`${EDD}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long' });
+   ```
+4. Replace that branch's `return (…)` with (the ring/text row is unchanged, now wrapped in a div, with the chip row added under it):
+   ```tsx
+   return (
+   	<Card tone='peach' className='p-4 sm:p-5'>
+   		<div className='flex items-center gap-4 sm:gap-5'>
+   			<ProgressRing progress={Math.min(1, Math.max(0.03, week / 40))}>
+   				<AnimatedNumber value={days} className='font-display text-[32px] font-extrabold leading-none' />
+   				<span className='mt-0.5 text-[10px] font-extrabold tracking-wide'>{days === 1 ? 'day to go' : 'days to go'}</span>
+   			</ProgressRing>
+   			<div className='min-w-0'>
+   				<p className='eyebrow text-ink/60'>Week {week} of 40 · Due {due}</p>
+   				<p className='mt-1 font-display text-display-lg font-extrabold'>{headlineFor(week)}</p>
+   				<div className='mt-2.5 flex items-center gap-2.5'>
+   					<motion.div
+   						className='grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-ink bg-white'
+   						animate={{ y: [0, -3, 0], rotate: [-6, 6, -6] }}
+   						transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+   					>
+   						<Emoji name={fruitImage(fruit)} size={32} eager />
+   					</motion.div>
+   					<p className='min-w-0 text-[13px] font-extrabold leading-tight'>
+   						Size of {withArticle(fruit.fruit)}
+   						<span className='block text-xs font-bold text-ink/60'>
+   							{fruit.lengthCm} cm{fruit.weightG > 0 ? ` · ~${formatWeight(fruit.weightG)}` : ''}
+   						</span>
+   					</p>
+   				</div>
+   			</div>
+   		</div>
+   		<div className='mt-3.5 border-t-2 border-dashed border-ink/15 pt-3'>
+   			<p className='eyebrow text-ink/60'>If baby arrives right on time</p>
+   			<div className='mt-1.5 flex flex-wrap gap-1.5'>
+   				<span className={CHIP}><Emoji name='tear-off-calendar' size={16} />{weekday}</span>
+   				{/* U+FE0E keeps the zodiac glyph as text instead of a coloured emoji tile on iOS. */}
+   				<span className={CHIP}><span aria-hidden>{zodiac.emoji}{'︎'}</span>{zodiac.name}</span>
+   				<span className={CHIP}><Emoji name='gem-stone' size={16} />{stone.name}</span>
+   			</div>
+   		</div>
+   	</Card>
+   );
+   ```
+
+- [ ] **Step 2: Create `src/hooks/useLatestMemory.ts`**
+
+```ts
+import { useEffect, useState } from 'react';
+import { supabase } from '../supabaseClient';
+import { Milestone } from '../types';
+
+/** The most recently added memory (highest id), independent of the timeline's pagination. Read-only. */
+export function useLatestMemory(): Milestone | null {
+	const [latest, setLatest] = useState<Milestone | null>(null);
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			const { data } = await supabase
+				.from('milestones')
+				.select('*')
+				.order('id', { ascending: false })
+				.limit(1)
+				.maybeSingle();
+			if (!cancelled) setLatest(data ?? null);
+		})();
+		return () => { cancelled = true; };
+	}, []);
+	return latest;
+}
+```
+
+- [ ] **Step 3: Create `src/components/home/LatestMemoryCard.tsx`**
+
+```tsx
+import { CaretRight } from '@phosphor-icons/react';
+import { Milestone, getImages } from '../../types';
+import { formatDay, parseDay } from '../../utils';
+import { Card } from '../ui/Card';
+import { timelineIcon } from '../timeline/timelineIcons';
+
+const DAY_MS = 86_400_000;
+
+const whenLabel = (date: string) => {
+	const days = Math.floor((Date.now() - parseDay(date).getTime()) / DAY_MS);
+	if (days === 0) return 'Today';
+	if (days === 1) return 'Yesterday';
+	if (days > 1 && days < 30) return `${days} days ago`;
+	return formatDay(date);
+};
+
+/** Compact "what's new" card for returning visitors. */
+export const LatestMemoryCard = ({ memory, onOpen }: { memory: Milestone; onOpen: () => void }) => {
+	const images = getImages(memory);
+	const { Icon, bg } = timelineIcon(memory.icon);
+	const age = Math.floor((Date.now() - parseDay(memory.date).getTime()) / DAY_MS);
+	const isNew = age >= 0 && age <= 14;
+
+	return (
+		<Card interactive onClick={onOpen} aria-label={`Latest memory: ${memory.title}. Open`} className='flex items-center gap-3 p-3'>
+			{images.length > 0 ? (
+				<div className='w-16 shrink-0 -rotate-3 rounded-[3px] border border-ink/10 bg-white p-1 pb-2.5 shadow-[0_5px_12px_-7px_rgba(43,35,64,0.5)]'>
+					<img
+						src={images[0]}
+						alt=''
+						loading='lazy'
+						decoding='async'
+						draggable={false}
+						className='aspect-square w-full rounded-[2px] object-cover'
+					/>
+				</div>
+			) : (
+				<div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border-2 border-ink ${bg}`}>
+					<Icon size={26} weight='duotone' />
+				</div>
+			)}
+			<div className='min-w-0 flex-1'>
+				<p className='eyebrow flex items-center gap-1.5 text-muted'>
+					Latest memory
+					{isNew && <span className='rounded-full border-2 border-ink bg-butter px-1.5 py-px text-[10px] tracking-normal text-ink'>New</span>}
+				</p>
+				<p className='mt-0.5 truncate font-display text-base font-extrabold'>{memory.title}</p>
+				<p className='text-xs font-bold text-muted'>{whenLabel(memory.date)}</p>
+			</div>
+			<CaretRight size={18} weight='bold' className='shrink-0' />
+		</Card>
+	);
+};
+```
+
+- [ ] **Step 4: Update `src/components/HomeTab.tsx`**
+
+Replace the file with:
+
+```tsx
+import { ArrowRight } from '@phosphor-icons/react';
+import { motion } from 'motion/react';
+import { useCallback, useState } from 'react';
+import { useGuesses } from '../hooks/useGuesses';
+import { useLatestMemory } from '../hooks/useLatestMemory';
+import { usePolls } from '../hooks/usePolls';
+import { riseIn, stagger } from '../lib/motion';
+import { Milestone } from '../types';
+import { FactTicker } from './home/FactTicker';
+import { GuessPanel } from './home/GuessPanel';
+import { GuessTile, ScoreTile } from './home/HomeTiles';
+import { HeroCard } from './home/HeroCard';
+import { LatestMemoryCard } from './home/LatestMemoryCard';
+import { PollDeck } from './home/PollDeck';
+import { ScoreSheet } from './home/ScoreSheet';
+import { MemoryView } from './timeline/MemoryView';
+import { Button } from './ui/Button';
+import { Emoji } from './ui/Emoji';
+import { Sheet } from './ui/Sheet';
+
+type Props = {
+	isUnlocked: boolean;
+	onImageClick: (images: string[], index: number, title: string) => void;
+	onEditMemory: (m: Milestone) => void;
+	onOpenTimeline: () => void;
+};
+
+export const HomeTab = ({ isUnlocked, onImageClick, onEditMemory, onOpenTimeline }: Props) => {
+	const polls = usePolls();
+	const guesses = useGuesses();
+	const latest = useLatestMemory();
+	const [sheet, setSheet] = useState<'guess' | 'score' | 'memory' | null>(null);
+	const closeSheet = useCallback(() => setSheet(null), []);
+
+	return (
+		<>
+			<motion.div variants={stagger} initial='hidden' animate='show' className='space-y-5'>
+				<motion.div variants={riseIn}><HeroCard /></motion.div>
+				<motion.div variants={riseIn}><FactTicker /></motion.div>
+				{latest && (
+					<motion.div variants={riseIn}>
+						<LatestMemoryCard memory={latest} onOpen={() => setSheet('memory')} />
+					</motion.div>
+				)}
+				<motion.div variants={riseIn}><PollDeck polls={polls} /></motion.div>
+				<motion.div variants={riseIn} className='grid grid-cols-2 gap-3.5 pt-1'>
+					<GuessTile count={guesses.guesses.length} myGuess={guesses.myGuess} onOpen={() => setSheet('guess')} />
+					<ScoreTile fun={polls.state.fun} onOpen={() => setSheet('score')} />
+				</motion.div>
+			</motion.div>
+
+			<Sheet
+				open={sheet === 'guess'}
+				onClose={closeSheet}
+				title={<span className='flex items-center gap-2'>Guess the day <Emoji name='tear-off-calendar' size={26} /></span>}
+			>
+				<GuessPanel data={guesses} isUnlocked={isUnlocked} />
+			</Sheet>
+			<Sheet
+				open={sheet === 'score'}
+				onClose={closeSheet}
+				title={<span className='flex items-center gap-2'>Aditi vs Kartik <Emoji name='crown' size={26} /></span>}
+			>
+				<ScoreSheet fun={polls.state.fun} />
+			</Sheet>
+			<Sheet open={sheet === 'memory'} onClose={closeSheet} title={latest?.title ?? ''}>
+				{latest && (
+					<div className='space-y-4'>
+						<MemoryView
+							milestone={latest}
+							isUnlocked={isUnlocked}
+							onImageClick={(images, index) => onImageClick(images, index, latest.title)}
+							onEdit={() => { setSheet(null); onEditMemory(latest); }}
+						/>
+						<Button tone='white' block onClick={() => { setSheet(null); onOpenTimeline(); }}>
+							See the whole story
+							<ArrowRight size={16} weight='bold' />
+						</Button>
+					</div>
+				)}
+			</Sheet>
+		</>
+	);
+};
+```
+
+- [ ] **Step 5: Pass the new props from `App.tsx`**
+
+Replace `{activeTab === 'home' && <HomeTab isUnlocked={isUnlocked} />}` with:
+
+```tsx
+{activeTab === 'home' && (
+	<HomeTab
+		isUnlocked={isUnlocked}
+		onImageClick={(images, idx, title) => setExpandedGallery({ images, index: idx, title })}
+		onEditMemory={m => { setEditingMilestone(m); setIsModalOpen(true); }}
+		onOpenTimeline={() => changeTab('timeline')}
+	/>
+)}
+```
+
+- [ ] **Step 6: Verify**
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add App.tsx src/components/HomeTab.tsx src/components/home/HeroCard.tsx src/components/home/LatestMemoryCard.tsx src/hooks/useLatestMemory.ts
+git commit -m "feat: home extras — right-on-time chips and latest memory card"
+```
+
+---
+
+### Task 9: Visual QA and whole-branch review (controller)
 
 **Files:** none unless QA finds defects.
 

@@ -118,9 +118,11 @@ All motion uses transform/opacity only.
 ## Small behaviour additions
 
 - **Remembered guest name**: stored in `localStorage` (`timeline_guest_name`) the first time a guest enters it anywhere; prefilled in boy/girl vote, guess form, and blessing form. Editable in each form.
+- **"If baby arrives right on time"** (added 2026-09-27 at the user's request): a row of three chips at the bottom of the Home hero card — the EDD's weekday, zodiac sign, and birthstone, computed client-side from `EDD` with the existing `getZodiacSign`/`getBirthstone`. Hidden once the due date has passed.
+- **Latest memory** (added 2026-09-27 at the user's request): a compact Home card showing the most recently added milestone (highest `id`, fetched with its own read-only query so it's independent of timeline pagination) — polaroid thumbnail or icon, title, how long ago, and a "New" badge if the memory's date is within 14 days. Tapping opens the memory in a sheet (same view as the Timeline) with a "See the whole story" button that switches to the Timeline tab.
 
 ## Out of scope
 
-- New data features (subtle baby-info additions are proposed separately to the user).
+- Other baby-info additions (heartbeat, trimester track, "new since last visit" dots, weekly skills) — proposed, not chosen.
 - Dark mode.
 - Any change to Supabase schema or data.
