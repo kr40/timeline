@@ -88,6 +88,11 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 	const [error, setError] = useState<string | null>(null);
 	const opened = useRef(false);
 	const advanceTimer = useRef<ReturnType<typeof setTimeout>>();
+	const navToken = useRef(0);
+	const indexRef = useRef(index);
+	indexRef.current = index;
+	const stateRef = useRef(state);
+	stateRef.current = state;
 
 	// Open on the first question this visitor hasn't answered yet.
 	useEffect(() => {
@@ -100,6 +105,7 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 	useEffect(() => () => clearTimeout(advanceTimer.current), []);
 
 	const go = (next: number, direction: number) => {
+		navToken.current++;
 		clearTimeout(advanceTimer.current);
 		setDir(direction);
 		setError(null);
@@ -107,9 +113,10 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 	};
 
 	const scheduleAdvance = () => {
+		const from = indexRef.current;
 		for (let step = 1; step < POLL_ITEMS.length; step++) {
-			const j = (index + step) % POLL_ITEMS.length;
-			if (mineFor(state, POLL_ITEMS[j]) === null) {
+			const j = (from + step) % POLL_ITEMS.length;
+			if (mineFor(stateRef.current, POLL_ITEMS[j]) === null) {
 				advanceTimer.current = setTimeout(() => go(j, 1), 1300);
 				return;
 			}
@@ -119,9 +126,10 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 	const vote = async (e: ClickEvent, action: () => Promise<void>) => {
 		burstFrom(e.currentTarget);
 		setError(null);
+		const token = navToken.current;
 		try {
 			await action();
-			scheduleAdvance();
+			if (navToken.current === token) scheduleAdvance();
 		} catch (err: unknown) {
 			console.error(err);
 			setError("That vote didn't save. Try again?");

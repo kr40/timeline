@@ -29,6 +29,7 @@ export function usePolls() {
 	const [state, setState] = useState<PollsState>(initialState);
 	const stateRef = useRef(state);
 	stateRef.current = state;
+	const mounted = useRef(true);
 
 	const load = useCallback(async () => {
 		const [genderRes, traitRes, funRes] = await Promise.all([
@@ -56,8 +57,11 @@ export function usePolls() {
 			result.counts[row.choice]++;
 			if (row.voter_id === voterId) result.mine = row.choice;
 		}
+		if (!mounted.current) return;
 		setState(next);
 	}, [voterId]);
+
+	useEffect(() => () => { mounted.current = false; }, []);
 
 	useEffect(() => {
 		void load();
