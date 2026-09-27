@@ -1,5 +1,5 @@
 export const EDD       = '2026-11-09';
-export const APP_TITLE = 'Baby Journey ✨';
+export const APP_TITLE = 'Baby Journey';
 
 /** Returns current pregnancy week (4–40) derived from EDD. */
 export function getCurrentWeek(): number {
@@ -23,13 +23,4 @@ export function getGuessDateRange(): { min: string; max: string } {
 	const toISODate = (d: Date) =>
 		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 	return { min: toISODate(min), max: toISODate(max) };
-}
-
-export const SHOWER_DATE = '2026-08-14';
-
-/** True through the end of the shower day (local time) — gate-free reduced-tab mode. */
-export function isPreShowerMode(): boolean {
-	const now    = new Date();
-	const shower = new Date(SHOWER_DATE + 'T23:59:59');
-	return now.getTime() <= shower.getTime();
 }

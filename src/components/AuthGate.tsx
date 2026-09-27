@@ -1,47 +1,36 @@
-import { useEffect, useState } from 'react';
-import { Baby } from 'lucide-react';
+import { Eye, Key } from '@phosphor-icons/react';
+import { motion, useAnimate } from 'motion/react';
+import { FormEvent, useState } from 'react';
+import { Doodles } from './Doodles';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Emoji } from './ui/Emoji';
 
 const AUTH_STORAGE_KEY = 'timeline_auth';
 
 type AuthOutcome = 'unlocked' | 'view-only';
 
-interface AuthGateProps {
+type FormProps = {
 	onAuth: (state: AuthOutcome) => void;
-	isModal?: boolean;
-	onClose?: () => void;
-}
-
-const PasswordForm = ({
-	onAuth,
-	showViewOnly,
-	onClose,
-}: {
-	onAuth: (state: AuthOutcome) => void;
+	/** Show the guest option (full-screen gate) or only the password (unlock sheet). */
 	showViewOnly: boolean;
-	onClose?: () => void;
-}) => {
-	const [password, setPassword] = useState('');
-	const [error, setError]       = useState('');
-	const [shake, setShake]       = useState(false);
+};
 
-	useEffect(() => {
-		if (!shake) return;
-		const t = setTimeout(() => setShake(false), 600);
-		return () => clearTimeout(t);
-	}, [shake]);
+export const PasswordForm = ({ onAuth, showViewOnly }: FormProps) => {
+	const [password, setPassword] = useState('');
+	const [error, setError] = useState('');
+	const [scope, animate] = useAnimate<HTMLFormElement>();
 
 	const handleUnlock = () => {
 		const expected = import.meta.env.VITE_APP_PASSWORD;
-		if (!expected) {
-			console.warn('[AuthGate] VITE_APP_PASSWORD is not set.');
-		}
+		if (!expected) console.warn('[AuthGate] VITE_APP_PASSWORD is not set.');
 		if (password.trim() === (expected ?? '').trim()) {
 			try { localStorage.setItem(AUTH_STORAGE_KEY, 'unlocked'); } catch { /* ignore */ }
 			onAuth('unlocked');
 		} else {
-			setShake(true);
-			setError('Incorrect password');
+			setError("That's not the password. Try again?");
 			setPassword('');
+			void animate(scope.current, { x: [0, -10, 10, -7, 7, -3, 3, 0] }, { duration: 0.45 });
 		}
 	};
 
@@ -50,91 +39,80 @@ const PasswordForm = ({
 		onAuth('view-only');
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === 'Enter' && password.trim()) handleUnlock();
+	const onSubmit = (e: FormEvent) => {
+		e.preventDefault();
+		if (password.trim()) handleUnlock();
 	};
 
 	return (
-		<div className={shake ? 'animate-shake' : undefined}>
+		<form ref={scope} onSubmit={onSubmit} className='space-y-3'>
 			<input
 				type='password'
 				value={password}
 				onChange={e => { setPassword(e.target.value); setError(''); }}
-				onKeyDown={handleKeyDown}
-				placeholder='Enter password'
-				autoFocus
-				className='w-full px-5 py-3 border-2 border-slate-200 rounded-full text-center font-nunito text-slate-700 focus:outline-none focus:border-[#FF8C69] bg-white'
+				placeholder='Family password'
+				aria-label='Password'
+				aria-invalid={Boolean(error)}
+				autoComplete='current-password'
+				autoFocus={!showViewOnly}
+				className='field text-center'
 			/>
-			{error && (
-				<p className='mt-2 text-sm text-center text-red-400 font-semibold'>{error}</p>
-			)}
-			<button
-				onClick={handleUnlock}
-				disabled={!password.trim()}
-				className='mt-4 w-full py-3 bg-[#FF8C69] text-white font-bold rounded-full hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed'
-			>
-				Unlock ✨
-			</button>
+			{error && <p role='alert' className='text-center text-sm font-bold text-danger'>{error}</p>}
+			<Button type='submit' tone='butter' size='lg' block disabled={!password.trim()}>
+				<Key size={18} weight='bold' />
+				Unlock
+			</Button>
 			{showViewOnly && (
-				<button
-					onClick={handleViewOnly}
-					className='mt-3 w-full py-3 border-2 border-[#FF8C69] text-[#FF8C69] font-bold rounded-full hover:bg-[#FF8C69]/5 transition-colors'
-				>
-					View only 👀
-				</button>
+				<Button tone='white' size='lg' block onClick={handleViewOnly}>
+					<Eye size={18} weight='bold' />
+					View as a guest
+				</Button>
 			)}
-			{onClose && (
-				<button
-					onClick={onClose}
-					className='mt-3 w-full py-2 text-slate-400 text-sm font-semibold hover:text-slate-600 transition-colors'
-				>
-					Cancel
-				</button>
-			)}
-		</div>
+		</form>
 	);
 };
 
-export const AuthGate = ({ onAuth, isModal = false, onClose }: AuthGateProps) => {
-	useEffect(() => {
-		if (!isModal || !onClose) return;
-		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-		document.addEventListener('keydown', handler);
-		return () => document.removeEventListener('keydown', handler);
-	}, [isModal, onClose]);
-
-	if (isModal) {
-		return (
-			<div
-				role='dialog'
-				aria-modal='true'
-				aria-labelledby='authgate-modal-title'
-				onClick={onClose}
-				className='fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm'>
-				<div
-					onClick={e => e.stopPropagation()}
-					className='w-full max-w-sm mx-4 bg-white rounded-3xl p-8 shadow-xl'>
-					<h2 id='authgate-modal-title' className='font-poppins text-2xl font-extrabold text-[#1A1A2E] text-center mb-6'>🔑 Unlock editing</h2>
-					<PasswordForm onAuth={onAuth} showViewOnly={false} onClose={onClose} />
+/** Full-screen welcome gate shown until the visitor unlocks or continues as a guest. */
+export const AuthGate = ({ onAuth }: { onAuth: (state: AuthOutcome) => void }) => (
+	<div className='relative flex min-h-[100dvh] items-center justify-center px-4 py-10'>
+		<Doodles />
+		<motion.div
+			className='relative z-10 w-full max-w-sm'
+			initial={{ opacity: 0, y: 24, scale: 0.96 }}
+			animate={{ opacity: 1, y: 0, scale: 1 }}
+			transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+		>
+			<Card className='px-6 pb-7 pt-9 text-center'>
+				<div className='relative mx-auto h-28 w-28'>
+					<motion.div
+						className='absolute -left-8 top-1'
+						animate={{ y: [0, -8, 0], rotate: [-8, 4, -8] }}
+						transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+					>
+						<Emoji name='balloon' size={40} eager />
+					</motion.div>
+					<motion.div
+						className='absolute -right-7 top-0'
+						animate={{ scale: [1, 1.2, 1], rotate: [0, 20, 0] }}
+						transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+					>
+						<Emoji name='glowing-star' size={30} eager />
+					</motion.div>
+					<motion.div
+						animate={{ y: [0, -6, 0], rotate: [-3, 3, -3] }}
+						transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+					>
+						<Emoji name='baby' size={112} eager />
+					</motion.div>
 				</div>
-			</div>
-		);
-	}
-
-	return (
-		<div className='min-h-screen bg-[#FAFAFA] flex items-center justify-center font-nunito px-4'>
-			<div className='w-full max-w-sm bg-white rounded-3xl p-8 shadow-xl'>
-				<div className='flex flex-col items-center mb-8'>
-					<div className='inline-flex items-center justify-center p-4 mb-4 bg-[#FF8C69]/10 rounded-full'>
-						<Baby className='w-12 h-12 text-[#FF8C69]' />
-					</div>
-					<h1 className='font-poppins text-3xl font-extrabold text-[#1A1A2E] text-center'>Our Baby Journey</h1>
-					<p className='mt-2 text-slate-500 text-center text-sm leading-relaxed'>
-						Enter the password to add memories, or view the timeline as a guest.
-					</p>
+				<h1 className='mt-4 font-display text-display-xl font-extrabold'>Our Baby Journey</h1>
+				<p className='mx-auto mt-2 max-w-[17rem] text-sm font-semibold leading-relaxed text-muted'>
+					Family can unlock to add memories. Everyone else, come on in as a guest.
+				</p>
+				<div className='mt-6'>
+					<PasswordForm onAuth={onAuth} showViewOnly />
 				</div>
-				<PasswordForm onAuth={onAuth} showViewOnly={true} />
-			</div>
-		</div>
-	);
-};
+			</Card>
+		</motion.div>
+	</div>
+);

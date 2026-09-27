@@ -1,20 +1,32 @@
+import { Key, LockSimple } from '@phosphor-icons/react';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AuthGate } from './src/components/AuthGate';
+import { AuthGate, PasswordForm } from './src/components/AuthGate';
 import { BabyBookTab } from './src/components/BabyBookTab';
+import { Doodles } from './src/components/Doodles';
 import { ExpandedImageModal } from './src/components/ExpandedImageModal';
 import { HomeTab } from './src/components/HomeTab';
-import { MemoryModal } from './src/components/MemoryModal';
-import { ShowerTab } from './src/components/ShowerTab';
-import { TabBar, TabId } from './src/components/TabBar';
+import { MemoryForm } from './src/components/timeline/MemoryForm';
+import { TABS, TabBar, type TabId } from './src/components/TabBar';
 import { TimelineTab } from './src/components/TimelineTab';
 import { WishesTab } from './src/components/WishesTab';
+import { Button } from './src/components/ui/Button';
+import { Emoji } from './src/components/ui/Emoji';
+import { Sheet } from './src/components/ui/Sheet';
+import { celebrate } from './src/lib/celebrate';
 import { supabase } from './src/supabaseClient';
 import { Milestone, NewEvent } from './src/types';
 import { PAGE_SIZE } from './src/constants';
-import { APP_TITLE, getDaysUntilEDD, isPreShowerMode } from './src/config';
+import { APP_TITLE, getDaysUntilEDD } from './src/config';
 
 const AUTH_STORAGE_KEY = 'timeline_auth';
 type AuthState = 'unlocked' | 'view-only' | null;
+
+const pageVariants = {
+	enter:  (dir: number) => ({ opacity: 0, x: dir * 28 }),
+	center: { opacity: 1, x: 0 },
+	exit:   (dir: number) => ({ opacity: 0, x: dir * -28 }),
+};
 
 const App = () => {
 	const [milestones, setMilestones]   = useState<Milestone[]>([]);
@@ -22,15 +34,12 @@ const App = () => {
 	const [error, setError]             = useState<string | null>(null);
 	const [page, setPage]               = useState(0);
 	const [hasMore, setHasMore]         = useState(true);
-	const [activeTab, setActiveTab]     = useState<TabId>(() => {
-		if (window.location.hash === '#shower') {
-			try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* ignore */ }
-			return 'shower';
-		}
-		return 'home';
-	});
+	const [activeTab, setActiveTab]     = useState<TabId>('home');
+	const [direction, setDirection]     = useState(1);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [showUnlock, setShowUnlock]   = useState(false);
 	const [expandedGallery, setExpandedGallery] = useState<{ images: string[]; index: number; title: string } | null>(null);
+	const [memoryRev, setMemoryRev] = useState(0);
 
 	const [editingMilestoneState, setEditingMilestoneState] = useState<Milestone | null>(null);
 	const editingMilestoneRef = useRef<Milestone | null>(null);
@@ -46,34 +55,33 @@ const App = () => {
 		} catch { /* localStorage unavailable */ }
 		return null;
 	});
-
-	const [showUnlockModal, setShowUnlockModal] = useState(false);
 	const isUnlocked = authState === 'unlocked';
 
-	const preShower = isPreShowerMode() && !isUnlocked;
-	const visibleTabs: TabId[] = preShower
-		? ['home', 'wishes', 'shower']
-		: ['home', 'timeline', 'wishes', 'shower', 'babybook'];
-
-	const titleTaps = useRef<{ count: number; timer: ReturnType<typeof setTimeout> | null }>({ count: 0, timer: null });
-	const handleTitleTap = () => {
-		if (!preShower) return;
-		const t = titleTaps.current;
-		t.count += 1;
-		if (t.timer) clearTimeout(t.timer);
-		if (t.count >= 5) {
-			t.count = 0;
-			setShowUnlockModal(true);
-		} else {
-			t.timer = setTimeout(() => { t.count = 0; }, 3000);
+	useEffect(() => {
+		// Printed shower QR codes point at /#shower. That tab is gone, so tidy the URL and stay on Home.
+		if (window.location.hash === '#shower') {
+			try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* ignore */ }
 		}
+	}, []);
+
+	const changeTab = (next: TabId) => {
+		if (next === activeTab) return;
+		const order = TABS.map(t => t.id);
+		setDirection(order.indexOf(next) > order.indexOf(activeTab) ? 1 : -1);
+		setActiveTab(next);
+		window.scrollTo({ top: 0 });
 	};
 
-	const handleAuth  = (state: 'unlocked' | 'view-only') => setAuthState(state);
-	const handleLock  = () => {
+	const handleAuth = (state: 'unlocked' | 'view-only') => {
+		setAuthState(state);
+		if (state === 'unlocked') celebrate();
+	};
+	const handleLock = () => {
 		try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch { /* ignore */ }
 		setAuthState(null);
 	};
+	const closeUnlock = useCallback(() => setShowUnlock(false), []);
+	const closeMemoryForm = useCallback(() => setIsModalOpen(false), []);
 
 	const fetchMilestones = useCallback(async (pageNum: number, replace: boolean) => {
 		try {
@@ -91,8 +99,9 @@ const App = () => {
 				setMilestones(prev => replace ? data : [...prev, ...data]);
 				setHasMore(data.length === PAGE_SIZE);
 			}
-		} catch (err: any) {
-			setError(err.message || 'Failed to connect to the database.');
+		} catch (err: unknown) {
+			console.error(err);
+			setError("Couldn't load the memories. Check your connection and try again.");
 		} finally {
 			setIsLoading(false);
 		}
@@ -100,13 +109,9 @@ const App = () => {
 
 	useEffect(() => {
 		if (authState === null) return;
+		setPage(0);
 		fetchMilestones(0, true);
 	}, [fetchMilestones, authState]);
-
-	useEffect(() => {
-		if (!visibleTabs.includes(activeTab)) setActiveTab('home');
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [preShower, activeTab]);
 
 	const handleLoadMore = useCallback(() => {
 		const next = page + 1;
@@ -120,6 +125,7 @@ const App = () => {
 		if (editing) {
 			const { error } = await supabase.from('milestones').update(eventToSave).eq('id', editing.id);
 			if (error) throw error;
+			setMemoryRev(r => r + 1);
 			if (!hasMore) {
 				setMilestones(prev =>
 					prev
@@ -132,6 +138,8 @@ const App = () => {
 		} else {
 			const { data, error } = await supabase.from('milestones').insert([eventToSave]).select();
 			if (error) throw error;
+			setMemoryRev(r => r + 1);
+			celebrate();
 			if (data) {
 				if (!hasMore) {
 					setMilestones(prev =>
@@ -145,97 +153,132 @@ const App = () => {
 			}
 		}
 		setIsModalOpen(false);
-		setEditingMilestone(null);
 	}, [hasMore, fetchMilestones]);
 
 	const handleDeleteMilestone = useCallback(async (id: number) => {
 		const { error } = await supabase.from('milestones').delete().eq('id', id);
 		if (error) throw error;
+		setMemoryRev(r => r + 1);
 		setMilestones(prev => prev.filter(m => m.id !== id));
 		setIsModalOpen(false);
-		setEditingMilestone(null);
 	}, []);
 
 	const daysLeft = getDaysUntilEDD();
 
-	if (authState === null && !isPreShowerMode()) return <AuthGate onAuth={handleAuth} />;
+	if (authState === null) {
+		return (
+			<MotionConfig reducedMotion='user'>
+				<AuthGate onAuth={handleAuth} />
+			</MotionConfig>
+		);
+	}
 
 	return (
-		<div className='min-h-screen bg-[#FAFAFA] font-nunito text-[#1A1A2E] pb-24'>
-			<header className='sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100'>
-				<div className='max-w-[600px] mx-auto flex items-center justify-between px-4 py-3'>
-					<h1 onClick={handleTitleTap} className='font-poppins font-extrabold text-lg select-none'>{APP_TITLE}</h1>
-					<div className='flex items-center gap-2'>
-						{daysLeft > 0 && (
-							<span className='hidden sm:inline-flex items-center gap-1 bg-[#FF8C69]/10 text-[#FF8C69] text-xs font-bold px-3 py-1 rounded-full'>
-								{daysLeft} days to go
-							</span>
-						)}
-						{!preShower && (
-							isUnlocked ? (
-								<button onClick={handleLock}
-									className='text-xs font-bold text-[#FF8C69] bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors'>
-									🔒 Lock
-								</button>
-							) : (
-								<button onClick={() => setShowUnlockModal(true)}
-									className='text-xs font-bold text-[#FF8C69] bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors'>
-									🔑 Unlock
-								</button>
-							)
-						)}
-					</div>
-				</div>
-			</header>
+		<MotionConfig reducedMotion='user'>
+			<div className='min-h-screen'>
+				<Doodles />
 
-			<main className='max-w-[600px] mx-auto px-4 pt-4'>
-				{activeTab === 'home'     && <HomeTab isUnlocked={isUnlocked} preShower={preShower} />}
-				{activeTab === 'timeline' && !preShower && (
-					<TimelineTab
-						milestones={milestones}
-						isLoading={isLoading}
-						error={error}
-						hasMore={hasMore}
-						isUnlocked={isUnlocked}
-						onLoadMore={handleLoadMore}
-						onImageClick={(images, idx, title) => setExpandedGallery({ images, index: idx, title })}
-						onEditClick={m => { setEditingMilestone(m); setIsModalOpen(true); }}
-						onAddClick={() => { setEditingMilestone(null); setIsModalOpen(true); }}
+				<header className='sticky top-0 z-30 border-b-2 border-ink/10 bg-paper/85 backdrop-blur-md'>
+					<div className='mx-auto flex h-[60px] max-w-[640px] items-center justify-between gap-3 px-4'>
+						<button
+							type='button'
+							onClick={() => changeTab('home')}
+							className='flex items-center gap-1.5 font-display text-[22px] font-extrabold tracking-tight'
+						>
+							{APP_TITLE}
+							<motion.span
+								className='inline-flex'
+								animate={{ rotate: [0, 14, -8, 0], scale: [1, 1.15, 1] }}
+								transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 3.5 }}
+							>
+								<Emoji name='sparkles' size={24} eager />
+							</motion.span>
+						</button>
+						<div className='flex items-center gap-2'>
+							{daysLeft > 0 && (
+								<span className='hidden items-center rounded-full border-2 border-ink bg-peach px-3 py-1 text-xs font-extrabold tabular-nums sm:inline-flex'>
+									{daysLeft} days to go
+								</span>
+							)}
+							{isUnlocked ? (
+								<Button size='sm' tone='white' onClick={handleLock}>
+									<LockSimple size={14} weight='bold' />
+									Lock
+								</Button>
+							) : (
+								<Button size='sm' tone='white' onClick={() => setShowUnlock(true)}>
+									<Key size={14} weight='bold' />
+									Unlock
+								</Button>
+							)}
+						</div>
+					</div>
+				</header>
+
+				<main className='relative z-10 mx-auto max-w-[640px] px-4 pb-40 pt-4'>
+					<AnimatePresence mode='wait' initial={false} custom={direction}>
+						<motion.div
+							key={activeTab}
+							custom={direction}
+							variants={pageVariants}
+							initial='enter'
+							animate='center'
+							exit='exit'
+							transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+						>
+							{activeTab === 'home' && (
+								<HomeTab
+									isUnlocked={isUnlocked}
+									memoryRev={memoryRev}
+									onImageClick={(images, idx, title) => setExpandedGallery({ images, index: idx, title })}
+									onEditMemory={m => { setEditingMilestone(m); setIsModalOpen(true); }}
+									onOpenTimeline={() => changeTab('timeline')}
+								/>
+							)}
+							{activeTab === 'timeline' && (
+								<TimelineTab
+									milestones={milestones}
+									isLoading={isLoading}
+									error={error}
+									hasMore={hasMore}
+									isUnlocked={isUnlocked}
+									onLoadMore={handleLoadMore}
+									onImageClick={(images, idx, title) => setExpandedGallery({ images, index: idx, title })}
+									onEditClick={m => { setEditingMilestone(m); setIsModalOpen(true); }}
+									onAddClick={() => { setEditingMilestone(null); setIsModalOpen(true); }}
+								/>
+							)}
+							{activeTab === 'wishes' && <WishesTab />}
+							{activeTab === 'babybook' && <BabyBookTab isUnlocked={isUnlocked} />}
+						</motion.div>
+					</AnimatePresence>
+				</main>
+
+				<TabBar activeTab={activeTab} onTabChange={changeTab} />
+
+				<Sheet open={isModalOpen} onClose={closeMemoryForm} title={editingMilestoneState ? 'Edit memory' : 'New memory'}>
+					<MemoryForm
+						editingMilestone={editingMilestoneState}
+						onSave={handleSaveMilestone}
+						onDelete={handleDeleteMilestone}
+					/>
+				</Sheet>
+				{expandedGallery && (
+					<ExpandedImageModal
+						images={expandedGallery.images}
+						initialIndex={expandedGallery.index}
+						title={expandedGallery.title}
+						onClose={() => setExpandedGallery(null)}
 					/>
 				)}
-				{activeTab === 'wishes'   && <WishesTab />}
-				{activeTab === 'shower' && (
-					<ShowerTab onImageClick={url => setExpandedGallery({ images: [url], index: 0, title: 'Baby Shower' })} />
-				)}
-				{activeTab === 'babybook' && !preShower && <BabyBookTab isUnlocked={isUnlocked} />}
-			</main>
-
-			<TabBar activeTab={activeTab} onTabChange={setActiveTab} visibleTabs={visibleTabs} />
-
-			{isModalOpen && (
-				<MemoryModal
-					editingMilestone={editingMilestoneState}
-					onClose={() => setIsModalOpen(false)}
-					onSave={handleSaveMilestone}
-					onDelete={handleDeleteMilestone}
-				/>
-			)}
-			{expandedGallery && (
-				<ExpandedImageModal
-					images={expandedGallery.images}
-					initialIndex={expandedGallery.index}
-					title={expandedGallery.title}
-					onClose={() => setExpandedGallery(null)}
-				/>
-			)}
-			{showUnlockModal && (
-				<AuthGate
-					isModal={true}
-					onAuth={state => { handleAuth(state); setShowUnlockModal(false); }}
-					onClose={() => setShowUnlockModal(false)}
-				/>
-			)}
-		</div>
+				<Sheet open={showUnlock} onClose={closeUnlock} title='Unlock editing'>
+					<PasswordForm
+						showViewOnly={false}
+						onAuth={state => { handleAuth(state); setShowUnlock(false); }}
+					/>
+				</Sheet>
+			</div>
+		</MotionConfig>
 	);
 };
 

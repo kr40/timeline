@@ -17,3 +17,8 @@ publish = "dist"
 from = "/*"
 to = "/index.html"
 status = 200
+
+[[headers]]
+  for = "/emoji/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

@@ -1,178 +1,155 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { Plus } from '@phosphor-icons/react';
+import { motion } from 'motion/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { EmojiName } from '../emoji';
+import { celebrate } from '../lib/celebrate';
 import { supabase } from '../supabaseClient';
 import { Wish } from '../types';
-import { ReactionBar } from './wishes/ReactionBar';
+import { errorMessage } from '../utils';
+import { Emoji } from './ui/Emoji';
+import { EmptyState } from './ui/EmptyState';
+import { ErrorNote } from './ui/ErrorNote';
+import { Fab } from './ui/Fab';
+import { Sheet } from './ui/Sheet';
+import { Spinner } from './ui/Spinner';
+import { BlessingNote } from './wishes/BlessingNote';
+import { ComposeBlessing, type BlessingDraft } from './wishes/ComposeBlessing';
 
-const COLORS = [
-	'bg-[#FF8C69]/10 border-[#FF8C69]/20',
-	'bg-[#6CC9C9]/10 border-[#6CC9C9]/20',
-	'bg-[#B39DDB]/10 border-[#B39DDB]/20',
-	'bg-[#FF8FAB]/10 border-[#FF8FAB]/20',
+type Filter = 'all' | 'blessing' | 'advice';
+
+const FILTERS: { id: Filter; label: string; emoji?: EmojiName }[] = [
+	{ id: 'all',      label: 'All' },
+	{ id: 'blessing', label: 'Blessings', emoji: 'folded-hands' },
+	{ id: 'advice',   label: 'Advice',    emoji: 'light-bulb' },
 ];
 
-function relativeTime(iso: string): string {
-	const diff  = Date.now() - new Date(iso).getTime();
-	const mins  = Math.floor(diff / 60000);
-	const hours = Math.floor(diff / 3600000);
-	const days  = Math.floor(diff / 86400000);
-	if (mins  < 1)  return 'just now';
-	if (mins  < 60) return `${mins}m ago`;
-	if (hours < 24) return `${hours}h ago`;
-	if (days  < 7)  return `${days}d ago`;
-	return new Date(iso).toLocaleDateString();
-}
-
 export const WishesTab = () => {
-	const [wishes, setWishes]           = useState<Wish[]>([]);
-	const [isLoading, setIsLoading]     = useState(true);
-	const [loadError, setLoadError]     = useState<string | null>(null);
-	const [authorName, setAuthorName]   = useState('');
-	const [message, setMessage]         = useState('');
-	const [category, setCategory]       = useState<'blessing' | 'advice'>('blessing');
-	const [filter, setFilter]           = useState<'all' | 'blessing' | 'advice'>('all');
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [pendingIds, setPendingIds]   = useState<Set<string>>(new Set());
+	const [wishes, setWishes] = useState<Wish[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [filter, setFilter] = useState<Filter>('all');
+	const [composing, setComposing] = useState(false);
+	const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+	// Keeps a note's React key stable when its optimistic id is swapped for the saved id.
+	const stableKeys = useRef(new Map<string, string>());
 
 	useEffect(() => {
-		const load = async () => {
+		(async () => {
 			try {
-				const { data, error } = await supabase
-					.from('wishes').select('*').order('created_at', { ascending: false });
+				const { data, error } = await supabase.from('wishes').select('*').order('created_at', { ascending: false });
 				if (error) throw error;
 				setWishes(data ?? []);
 			} catch (err: unknown) {
-				setLoadError(err instanceof Error ? err.message : 'Failed to load wishes.');
+				setLoadError(errorMessage(err, "Couldn't load the blessings. Try again in a moment."));
 			} finally {
 				setIsLoading(false);
 			}
-		};
-		void load();
+		})();
 	}, []);
 
-	const handleSubmit = async (e: FormEvent) => {
-		e.preventDefault();
-		const name = authorName.trim();
-		const msg  = message.trim();
-		if (!name || !msg) return;
-		setIsSubmitting(true);
-		setSubmitError(null);
+	const closeCompose = useCallback(() => setComposing(false), []);
 
+	const handleSend = async ({ name, message, category }: BlessingDraft) => {
 		const optimistic: Wish = {
-			id: crypto.randomUUID(), author_name: name, message: msg,
+			id: crypto.randomUUID(),
+			author_name: name,
+			message,
 			category,
 			created_at: new Date().toISOString(),
 		};
 		setWishes(prev => [optimistic, ...prev]);
 		setPendingIds(prev => new Set(prev).add(optimistic.id));
-		setAuthorName('');
-		setMessage('');
-
 		try {
 			const { data, error } = await supabase
-				.from('wishes').insert({ author_name: name, message: msg, category }).select().single();
+				.from('wishes')
+				.insert({ author_name: name, message, category })
+				.select()
+				.single();
 			if (error) throw error;
-			setWishes(prev => prev.map(w => w.id === optimistic.id ? data : w));
+			stableKeys.current.set(data.id, optimistic.id);
+			setWishes(prev => prev.map(w => (w.id === optimistic.id ? data : w)));
+			setFilter('all');
+			setComposing(false);
+			celebrate();
 		} catch (err: unknown) {
 			setWishes(prev => prev.filter(w => w.id !== optimistic.id));
-			setSubmitError(err instanceof Error ? err.message : 'Failed to post wish. Please try again.');
+			throw err;
 		} finally {
 			setPendingIds(prev => {
 				const next = new Set(prev);
 				next.delete(optimistic.id);
 				return next;
 			});
-			setIsSubmitting(false);
 		}
 	};
 
+	const visible = wishes.filter(w => filter === 'all' || w.category === filter);
+
 	return (
-		<div className='space-y-4 pb-4'>
-			<div className='rounded-3xl bg-white border border-slate-100 shadow-md p-5'>
-				<h2 className='font-poppins font-bold text-[#1A1A2E] text-base mb-1'>Blessings & Advice Corner 🙏</h2>
-				<p className='text-xs text-[#6B7280] font-semibold mb-4'>Shower baby with your ashirwad, or share your best advice for the new parents</p>
-				<form onSubmit={handleSubmit} className='space-y-3'>
-					<div className='flex gap-2'>
-						<button type='button' onClick={() => setCategory('blessing')}
-							className={`flex-1 py-2 rounded-full text-xs font-bold border-2 transition-colors ${
-								category === 'blessing'
-									? 'bg-[#B39DDB] border-[#B39DDB] text-white'
-									: 'border-slate-200 text-slate-500 hover:border-[#B39DDB]/50'
-							}`}>
-							🙏 Blessing
-						</button>
-						<button type='button' onClick={() => setCategory('advice')}
-							className={`flex-1 py-2 rounded-full text-xs font-bold border-2 transition-colors ${
-								category === 'advice'
-									? 'bg-[#6CC9C9] border-[#6CC9C9] text-white'
-									: 'border-slate-200 text-slate-500 hover:border-[#6CC9C9]/50'
-							}`}>
-							💡 Advice
-						</button>
-					</div>
-					<input type='text' placeholder='Your name' required value={authorName}
-						onChange={e => setAuthorName(e.target.value)}
-						className='w-full px-4 py-2.5 text-sm border-2 border-slate-100 rounded-full bg-slate-50 focus:outline-none focus:border-[#B39DDB] transition-colors' />
-					<textarea placeholder='Write your blessing or advice for baby...' required rows={3} value={message}
-						onChange={e => setMessage(e.target.value)}
-						className='w-full px-4 py-3 text-sm border-2 border-slate-100 rounded-3xl bg-slate-50 focus:outline-none focus:border-[#B39DDB] resize-none transition-colors' />
-					{submitError && <p className='text-xs text-red-500 font-semibold px-2'>{submitError}</p>}
-					<button type='submit' disabled={isSubmitting}
-						className='w-full py-3 rounded-full font-poppins font-bold text-white bg-[#B39DDB] hover:bg-[#a48dcb] active:scale-95 transition-all disabled:opacity-60'>
-						{isSubmitting ? 'Sending...' : 'Send with Love 🙏'}
-					</button>
-				</form>
+		<div className='pb-4'>
+			<div className='mb-3 flex items-center gap-3 px-1'>
+				<Emoji name='folded-hands' size={44} eager />
+				<div>
+					<h2 className='font-display text-display-lg font-extrabold'>Blessings &amp; advice</h2>
+					<p className='text-sm font-semibold text-muted'>Ashirwad and wisdom for the little one</p>
+				</div>
 			</div>
 
-			<div className='flex gap-2'>
-				{([['all', 'All'], ['blessing', '🙏 Blessings'], ['advice', '💡 Advice']] as const).map(([id, label]) => (
-					<button key={id} onClick={() => setFilter(id)}
-						className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-							filter === id
-								? 'bg-[#1A1A2E] border-[#1A1A2E] text-white'
-								: 'bg-white border-slate-200 text-slate-500'
-						}`}>
-						{label}
-					</button>
+			<div className='sticky top-[62px] z-20 -mx-4 mb-3 flex gap-2 px-4 py-2'>
+				{FILTERS.map(f => {
+					const active = filter === f.id;
+					return (
+						<button
+							key={f.id}
+							type='button'
+							onClick={() => setFilter(f.id)}
+							aria-pressed={active}
+							className='relative inline-flex items-center rounded-full border-2 border-ink bg-white px-3.5 py-1.5 text-[13px] font-extrabold shadow-sticker-xs'
+						>
+							{active && (
+								<motion.span
+									layoutId='filter-pill'
+									className='absolute inset-0 rounded-full bg-ink'
+									transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+								/>
+							)}
+							<span className={`relative flex items-center gap-1.5 ${active ? 'text-white' : ''}`}>
+								{f.emoji && <Emoji name={f.emoji} size={16} />}
+								{f.label}
+							</span>
+						</button>
+					);
+				})}
+			</div>
+
+			{isLoading && <Spinner label='Loading blessings' />}
+			{loadError && <ErrorNote>{loadError}</ErrorNote>}
+			{!isLoading && !loadError && visible.length === 0 && (
+				<EmptyState
+					emoji='folded-hands'
+					title={filter === 'all' ? 'No blessings yet' : 'Nothing here yet'}
+					body='Be the first to bless the little one.'
+				/>
+			)}
+
+			<div className='columns-2 gap-3.5 sm:gap-4'>
+				{visible.map(w => (
+					<BlessingNote key={stableKeys.current.get(w.id) ?? w.id} wish={w} pending={pendingIds.has(w.id)} />
 				))}
 			</div>
 
-			{isLoading && (
-				<div className='flex justify-center py-8'>
-					<div className='w-8 h-8 border-2 border-[#B39DDB] border-t-transparent rounded-full animate-spin' />
-				</div>
-			)}
-			{loadError && (
-				<div className='rounded-3xl bg-red-50 border border-red-200 p-4 text-sm text-red-500 font-semibold text-center'>
-					{loadError}
-				</div>
-			)}
-			{!isLoading && !loadError && wishes.length === 0 && (
-				<div className='rounded-3xl bg-white border border-slate-100 shadow-md p-8 text-center'>
-					<div className='text-4xl mb-3'>🙏</div>
-					<p className='font-poppins font-bold text-[#1A1A2E]'>No blessings yet</p>
-					<p className='text-xs text-[#6B7280] font-semibold mt-1'>Be the first to bless the little one!</p>
-				</div>
-			)}
-			{wishes
-				.filter(w => filter === 'all' || w.category === filter)
-				.map((wish, i) => (
-				<div key={wish.id} className={`rounded-3xl border p-5 ${COLORS[i % COLORS.length]}`}>
-					<div className='flex items-center justify-between mb-2'>
-						<span className='font-poppins font-bold text-[#1A1A2E] text-sm'>{wish.author_name}</span>
-						<div className='flex items-center gap-2'>
-							{wish.category && (
-								<span className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 text-[#6B7280]'>
-									{wish.category === 'blessing' ? '🙏 Blessing' : '💡 Advice'}
-								</span>
-							)}
-							<span className='text-[10px] text-[#6B7280] font-semibold'>{relativeTime(wish.created_at)}</span>
-						</div>
-					</div>
-					<p className='text-sm text-[#1A1A2E] font-semibold leading-relaxed'>{wish.message}</p>
-					{!pendingIds.has(wish.id) && <ReactionBar wishId={wish.id} />}
-				</div>
-			))}
+			<Fab label='Write a blessing' onClick={() => setComposing(true)}>
+				<Plus size={18} weight='bold' />
+				Bless
+			</Fab>
+
+			<Sheet
+				open={composing}
+				onClose={closeCompose}
+				title={<span className='flex items-center gap-2'>Send a blessing <Emoji name='love-letter' size={26} /></span>}
+			>
+				<ComposeBlessing onSend={handleSend} />
+			</Sheet>
 		</div>
 	);
 };

@@ -24,6 +24,7 @@
     "main.tsx",
     "App.tsx",
     "src/**/*.ts",
+    "src/**/*.tsx",
     "vite-env.d.ts"
   ],
   "references": [
