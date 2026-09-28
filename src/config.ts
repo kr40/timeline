@@ -1,4 +1,4 @@
-export const EDD       = '2026-11-09';
+export const EDD       = '2026-11-06';
 export const APP_TITLE = 'Baby Journey';
 
 /** Returns current pregnancy week (4–40) derived from EDD. */
