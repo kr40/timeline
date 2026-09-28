@@ -83,9 +83,7 @@ export const TimelineTab = ({
 								key={milestone.id}
 								milestone={milestone}
 								index={index}
-								isUnlocked={isUnlocked}
 								onOpen={openView}
-								onEdit={onEditClick}
 							/>
 						))}
 					</div>

@@ -41,3 +41,12 @@
 		@apply text-[11px] font-extrabold uppercase tracking-[0.12em];
 	}
 }
+
+@layer utilities {
+	.no-scrollbar {
+		scrollbar-width: none;
+	}
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+}
