@@ -175,7 +175,8 @@ const App = () => {
 
 	return (
 		<MotionConfig reducedMotion='user'>
-			<div className='min-h-screen'>
+			{/* overflow-x-clip: cards sliding in from the side must never widen the page on phones (clip keeps sticky working). */}
+			<div className='min-h-screen overflow-x-clip'>
 				<Doodles />
 
 				<header className='sticky top-0 z-30 border-b-2 border-ink/10 bg-paper/85 backdrop-blur-md'>

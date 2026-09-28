@@ -1,4 +1,3 @@
-import { PencilSimple } from '@phosphor-icons/react';
 import { memo, useState } from 'react';
 import { fallbackTo, ikResize } from '../../lib/imagekit';
 import { Milestone, getImages } from '../../types';
@@ -10,12 +9,11 @@ import { timelineIcon } from './timelineIcons';
 type Props = {
 	milestone: Milestone;
 	index: number;
-	isUnlocked: boolean;
 	onOpen: (m: Milestone) => void;
-	onEdit: (m: Milestone) => void;
 };
 
-export const MemoryCard = memo(({ milestone, index, isUnlocked, onOpen, onEdit }: Props) => {
+/** Timeline entry; tapping it opens the full memory, where family can edit. */
+export const MemoryCard = memo(({ milestone, index, onOpen }: Props) => {
 	const images = getImages(milestone);
 	const { Icon, bg } = timelineIcon(milestone.icon);
 	const tilt = index % 2 === 0 ? -2.5 : 2.5;
@@ -60,16 +58,6 @@ export const MemoryCard = memo(({ milestone, index, isUnlocked, onOpen, onEdit }
 					</div>
 				)}
 			</Card>
-			{isUnlocked && (
-				<button
-					type='button'
-					aria-label={`Edit ${milestone.title}`}
-					onClick={() => onEdit(milestone)}
-					className='press absolute -bottom-2 right-3 z-[2] grid h-8 w-8 place-items-center rounded-full border-2 border-ink bg-white shadow-sticker-sm'
-				>
-					<PencilSimple size={14} weight='bold' />
-				</button>
-			)}
 		</Reveal>
 	);
 });

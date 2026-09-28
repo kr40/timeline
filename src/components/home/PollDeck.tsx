@@ -1,6 +1,6 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useDragControls } from 'motion/react';
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { POLL_ITEMS, type Gender, type PollItem, type PollsState, type Side } from '../../data/polls';
 import { saveGuestName, useGuestName } from '../../hooks/useGuestName';
 import type { usePolls } from '../../hooks/usePolls';
@@ -19,6 +19,86 @@ const cardVariants = {
 	enter:  (dir: number) => ({ x: dir * 80, opacity: 0, rotate: dir * 5, scale: 0.95 }),
 	center: { x: 0, opacity: 1, rotate: 0, scale: 1 },
 	exit:   (dir: number) => ({ x: dir * -260, opacity: 0, rotate: dir * -12, transition: { duration: 0.28 } }),
+};
+
+/** Vertical padding (p-4) plus the 2px border, top and bottom. */
+const CARD_CHROME = 36;
+const SWIPE_DISTANCE = 70;
+const SWIPE_VELOCITY = 450;
+
+type SwipeCardProps = { dir: number; onSwipe: (step: 1 | -1) => void; children: ReactNode };
+
+/** The current card: swipe it left/right to move through the deck. */
+const SwipeCard = forwardRef<HTMLDivElement, SwipeCardProps>(({ dir, onSwipe, children }, ref) => {
+	const controls = useDragControls();
+	const dragging = useRef(false);
+	const lastDragEnd = useRef(0);
+	return (
+		<motion.div
+			ref={ref}
+			custom={dir}
+			variants={cardVariants}
+			initial='enter'
+			animate='center'
+			exit='exit'
+			transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+			drag='x'
+			dragControls={controls}
+			dragListener={false}
+			dragSnapToOrigin
+			dragElastic={0.55}
+			onPointerDown={e => {
+				// Pressing in the name field shouldn't grab the card.
+				if (!(e.target instanceof Element && e.target.closest('input, textarea'))) controls.start(e);
+			}}
+			onDragStart={() => { dragging.current = true; }}
+			onDragEnd={(_, info) => {
+				dragging.current = false;
+				lastDragEnd.current = performance.now();
+				if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) onSwipe(1);
+				else if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) onSwipe(-1);
+			}}
+			onClickCapture={e => {
+				// The click that ends a swipe must not also cast a vote.
+				if (dragging.current || performance.now() - lastDragEnd.current < 350) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			}}
+			className='cursor-grab touch-pan-y active:cursor-grabbing'
+		>
+			{children}
+		</motion.div>
+	);
+});
+SwipeCard.displayName = 'SwipeCard';
+
+type DeckCardProps = { minHeight: number; onHeight: (height: number) => void; head: ReactNode; body: ReactNode };
+
+/** Card face. Reports its natural height so the deck can keep every card the same size. */
+const DeckCard = ({ minHeight, onHeight, head, body }: DeckCardProps) => {
+	const headRef = useRef<HTMLDivElement>(null);
+	const bodyRef = useRef<HTMLDivElement>(null);
+	const report = useCallback(() => {
+		const headEl = headRef.current;
+		const bodyEl = bodyRef.current;
+		if (headEl && bodyEl) onHeight(headEl.offsetHeight + bodyEl.offsetHeight + CARD_CHROME);
+	}, [onHeight]);
+	// After every render (the content may have changed, e.g. loading → question), and on async
+	// resizes such as web fonts finishing loading.
+	useLayoutEffect(report);
+	useLayoutEffect(() => {
+		const observer = new ResizeObserver(report);
+		if (headRef.current) observer.observe(headRef.current);
+		if (bodyRef.current) observer.observe(bodyRef.current);
+		return () => observer.disconnect();
+	}, [report]);
+	return (
+		<Card className='flex flex-col p-4' style={{ minHeight }}>
+			<div ref={headRef}>{head}</div>
+			<div ref={bodyRef} className='mt-auto pt-4'>{body}</div>
+		</Card>
+	);
 };
 
 const mineFor = (state: PollsState, item: PollItem): string | null =>
@@ -86,6 +166,9 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 	const [index, setIndex] = useState(0);
 	const [dir, setDir] = useState(1);
 	const [error, setError] = useState<string | null>(null);
+	// Every card takes the height of the tallest one seen so far, so moving through the deck never shifts the page.
+	const [cardHeight, setCardHeight] = useState(182);
+	const fitCard = useCallback((height: number) => setCardHeight(prev => (height > prev ? height : prev)), []);
 	const opened = useRef(false);
 	const advanceTimer = useRef<ReturnType<typeof setTimeout>>();
 	const navToken = useRef(0);
@@ -140,7 +223,6 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 	const mine = mineFor(state, item);
 	const answered = POLL_ITEMS.filter(p => mineFor(state, p) !== null).length;
 	const allDone = !state.loading && answered === POLL_ITEMS.length;
-	const canDrag = !(item.kind === 'gender' && !mine);
 
 	const onSideVote = (e: ClickEvent, side: Side) => {
 		if (item.kind === 'trait') void vote(e, () => polls.voteTrait(item.id, side));
@@ -166,27 +248,13 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 			<div className='relative'>
 				<div aria-hidden className='absolute inset-0 translate-x-[9px] translate-y-[9px] rotate-[2.5deg] rounded-card border-2 border-ink bg-lav' />
 				<div aria-hidden className='absolute inset-0 translate-x-[4px] translate-y-[4px] rotate-1 rounded-card border-2 border-ink bg-mint' />
-				<div className='relative min-h-[182px]'>
+				<div className='relative'>
 					<AnimatePresence mode='popLayout' initial={false} custom={dir}>
-						<motion.div
-							key={item.id}
-							custom={dir}
-							variants={cardVariants}
-							initial='enter'
-							animate='center'
-							exit='exit'
-							transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-							drag={canDrag ? 'x' : false}
-							dragSnapToOrigin
-							dragElastic={0.55}
-							onDragEnd={(_, info) => {
-								if (info.offset.x < -70 || info.velocity.x < -450) go(index + 1, 1);
-								else if (info.offset.x > 70 || info.velocity.x > 450) go(index - 1, -1);
-							}}
-							className={canDrag ? 'cursor-grab touch-pan-y active:cursor-grabbing' : ''}
-						>
-							<Card className='min-h-[182px] p-4'>
-								{state.loading ? (
+						<SwipeCard key={item.id} dir={dir} onSwipe={step => go(index + step, step)}>
+							<DeckCard
+								minHeight={cardHeight}
+								onHeight={fitCard}
+								head={state.loading ? (
 									<Spinner label='Loading polls' />
 								) : (
 									<>
@@ -201,26 +269,24 @@ export const PollDeck = ({ polls }: { polls: Polls }) => {
 											</motion.div>
 											<h3 className='font-display text-[19px] font-extrabold leading-snug'>{item.question}</h3>
 										</div>
-										<div className='mt-4'>
-											{mine ? (
-												<Results item={item} state={state} />
-											) : item.kind === 'gender' ? (
-												<GenderOptions onVote={onGenderVote} />
-											) : (
-												<div className='grid grid-cols-2 gap-2.5'>
-													<Button tone='lav' onClick={e => onSideVote(e, 'aditi')}>
-														{item.kind === 'fun' ? item.aditiLabel : 'Aditi'}
-													</Button>
-													<Button tone='mint' onClick={e => onSideVote(e, 'kartik')}>
-														{item.kind === 'fun' ? item.kartikLabel : 'Kartik'}
-													</Button>
-												</div>
-											)}
-										</div>
 									</>
 								)}
-							</Card>
-						</motion.div>
+								body={state.loading ? null : mine ? (
+									<Results item={item} state={state} />
+								) : item.kind === 'gender' ? (
+									<GenderOptions onVote={onGenderVote} />
+								) : (
+									<div className='grid grid-cols-2 gap-2.5'>
+										<Button tone='lav' onClick={e => onSideVote(e, 'aditi')}>
+											{item.kind === 'fun' ? item.aditiLabel : 'Aditi'}
+										</Button>
+										<Button tone='mint' onClick={e => onSideVote(e, 'kartik')}>
+											{item.kind === 'fun' ? item.kartikLabel : 'Kartik'}
+										</Button>
+									</div>
+								)}
+							/>
+						</SwipeCard>
 					</AnimatePresence>
 				</div>
 			</div>

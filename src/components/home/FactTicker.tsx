@@ -2,17 +2,16 @@ import { CaretRight } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { getCurrentWeek } from '../../config';
-import { getFruitForWeek } from '../../data/fruitData';
 import { getFactsForWeek } from '../../data/weeklyFacts';
 import { Card } from '../ui/Card';
 import { Emoji } from '../ui/Emoji';
 
-/** This week's fruit-of-the-week fact, then its three facts; tap to cycle. */
+/**
+ * This week's three baby facts; tap to cycle. The fruit-of-the-week fact is left out on purpose:
+ * it is a shorter copy of one of these for almost every week, so it read as a repeat.
+ */
 export const FactTicker = () => {
-	const week = getCurrentWeek();
-	const fruit = getFruitForWeek(week);
-	const { facts: weekFacts } = getFactsForWeek(week);
-	const facts = fruit.fact ? [fruit.fact, ...weekFacts] : weekFacts;
+	const { facts } = getFactsForWeek(getCurrentWeek());
 	const [index, setIndex] = useState(0);
 
 	return (

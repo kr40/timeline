@@ -1,60 +1,70 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { motion } from 'motion/react';
+import { useRef, useState } from 'react';
 import { fallbackTo, ikResize } from '../../lib/imagekit';
 
 type Props = { images: string[]; title: string; onOpen: (index: number) => void };
 
-const slide = {
-	enter:  (dir: number) => ({ x: dir > 0 ? '100%' : dir < 0 ? '-100%' : 0, opacity: dir === 0 ? 0 : 1 }),
-	center: { x: 0, opacity: 1 },
-	exit:   (dir: number) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 1 }),
-};
-
 const ARROW = 'press grid h-9 w-9 place-items-center rounded-full border-2 border-ink bg-white/95 shadow-sticker-sm';
 
-/** Swipeable photos for the memory sheet; tap a photo to open it full screen. */
+/**
+ * Photos for the memory sheet. Swipe to browse (native scroll-snap, so a swipe is never
+ * mistaken for a tap); tap a photo to open it full screen.
+ */
 export const PhotoCarousel = ({ images, title, onOpen }: Props) => {
-	const [[index, dir], setView] = useState<[number, number]>([0, 0]);
+	const track = useRef<HTMLDivElement>(null);
+	const [index, setIndex] = useState(0);
 	const multi = images.length > 1;
-	const go = (step: number) => setView(([i]) => [(i + step + images.length) % images.length, step]);
+
+	const scrollToPhoto = (i: number) => {
+		const el = track.current;
+		if (!el) return;
+		const target = (i + images.length) % images.length;
+		el.scrollTo({ left: target * el.clientWidth, behavior: 'smooth' });
+	};
+
+	const onScroll = () => {
+		const el = track.current;
+		if (el && el.clientWidth > 0) setIndex(Math.round(el.scrollLeft / el.clientWidth));
+	};
 
 	return (
 		<div>
-			<div className='relative aspect-[4/3] overflow-hidden rounded-2xl border-2 border-ink bg-dot/40 shadow-sticker-sm'>
-				<AnimatePresence initial={false} custom={dir}>
-					<motion.img
-						key={index}
-						src={ikResize(images[index], 1200)}
-						alt={`${title} — photo ${index + 1} of ${images.length}`}
-						custom={dir}
-						variants={slide}
-						initial='enter'
-						animate='center'
-						exit='exit'
-						transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-						drag={multi ? 'x' : false}
-						dragConstraints={{ left: 0, right: 0 }}
-						dragElastic={0.5}
-						onDragEnd={(_, info) => {
-							if (info.offset.x < -60) go(1);
-							else if (info.offset.x > 60) go(-1);
-						}}
-						onTap={() => onOpen(index)}
-						onError={fallbackTo(images[index])}
-						draggable={false}
-						className='absolute inset-0 h-full w-full cursor-zoom-in select-none object-cover'
-					/>
-				</AnimatePresence>
+			<div className='relative overflow-hidden rounded-2xl border-2 border-ink bg-dot/40 shadow-sticker-sm'>
+				<div
+					ref={track}
+					onScroll={onScroll}
+					className='no-scrollbar flex aspect-[4/3] snap-x snap-mandatory overflow-x-auto overscroll-x-contain'
+				>
+					{images.map((url, i) => (
+						<button
+							key={`${i}-${url}`}
+							type='button'
+							onClick={() => onOpen(i)}
+							aria-label={`${title}, photo ${i + 1} of ${images.length}. Open full screen`}
+							className='h-full w-full shrink-0 snap-center snap-always cursor-zoom-in'
+						>
+							<img
+								src={ikResize(url, 1200)}
+								alt=''
+								loading={i === 0 ? 'eager' : 'lazy'}
+								decoding='async'
+								draggable={false}
+								onError={fallbackTo(url)}
+								className='h-full w-full select-none object-cover'
+							/>
+						</button>
+					))}
+				</div>
 				{multi && (
 					<>
 						<div className='absolute left-2 top-1/2 z-10 -translate-y-1/2'>
-							<button type='button' aria-label='Previous photo' onClick={() => go(-1)} className={ARROW}>
+							<button type='button' aria-label='Previous photo' onClick={() => scrollToPhoto(index - 1)} className={ARROW}>
 								<CaretLeft size={16} weight='bold' />
 							</button>
 						</div>
 						<div className='absolute right-2 top-1/2 z-10 -translate-y-1/2'>
-							<button type='button' aria-label='Next photo' onClick={() => go(1)} className={ARROW}>
+							<button type='button' aria-label='Next photo' onClick={() => scrollToPhoto(index + 1)} className={ARROW}>
 								<CaretRight size={16} weight='bold' />
 							</button>
 						</div>
@@ -64,7 +74,7 @@ export const PhotoCarousel = ({ images, title, onOpen }: Props) => {
 			{multi && (
 				<div className='mt-3 flex justify-center gap-1.5'>
 					{images.map((_, i) => (
-						<button key={i} type='button' aria-label={`Photo ${i + 1}`} onClick={() => go(i - index)} className='grid h-5 place-items-center'>
+						<button key={i} type='button' aria-label={`Photo ${i + 1}`} onClick={() => scrollToPhoto(i)} className='grid h-5 place-items-center'>
 							<motion.span
 								className={`block h-2 rounded-full ${i === index ? 'bg-ink' : 'bg-ink/20'}`}
 								animate={{ width: i === index ? 18 : 8 }}
